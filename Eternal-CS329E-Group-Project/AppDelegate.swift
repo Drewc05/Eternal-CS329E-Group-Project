@@ -1,14 +1,16 @@
 // Eternal-CS329E-Group-Project
 // Group 15
-// Created / Edits done by Ori Parks (lwp369)
+// Created / Edits done by Ori Parks (lwp369), Colin Day (cdd2774)
 
 import UIKit
+import FirebaseCore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        FirebaseApp.configure()
         return true
     }
 

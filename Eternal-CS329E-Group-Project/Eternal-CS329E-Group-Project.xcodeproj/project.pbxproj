@@ -10,22 +10,9 @@
 		72AB32B42EA6A62600E84ED4 /* Eternal-CS329E-Group-Project.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Eternal-CS329E-Group-Project.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		72AB32C62EA6A62900E84ED4 /* Exceptions for "Eternal-CS329E-Group-Project" folder in "Eternal-CS329E-Group-Project" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 72AB32B32EA6A62600E84ED4 /* Eternal-CS329E-Group-Project */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		72AB32B62EA6A62600E84ED4 /* Eternal-CS329E-Group-Project */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				72AB32C62EA6A62900E84ED4 /* Exceptions for "Eternal-CS329E-Group-Project" folder in "Eternal-CS329E-Group-Project" target */,
-			);
 			path = "Eternal-CS329E-Group-Project";
 			sourceTree = "<group>";
 		};

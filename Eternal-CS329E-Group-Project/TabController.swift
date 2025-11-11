@@ -1,6 +1,6 @@
 // Eternal-CS329E-Group-Project
 // Group 15
-// Created / Edits done by Ori Parks (lwp369)
+// Created by Colin Day (cdd2774) / Edits done by Ori Parks (lwp369)
 
 import SwiftUI
 
