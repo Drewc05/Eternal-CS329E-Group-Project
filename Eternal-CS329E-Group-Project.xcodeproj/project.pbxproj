@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		55F153B42EC478830015D5A9 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 55F153B32EC478830015D5A9 /* README.md */; };
 		BBD09B5B2EA800C100E355CF /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B5A2EA800C100E355CF /* Models.swift */; };
 		BBD09B5D2EA800C900E355CF /* HabitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B5C2EA800C900E355CF /* HabitStore.swift */; };
 		BBD09B5F2EA800CF00E355CF /* NewHabitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B5E2EA800CF00E355CF /* NewHabitViewController.swift */; };
@@ -25,6 +26,7 @@
 
 /* Begin PBXFileReference section */
 		55D74DD92EC43BBE00D1CEC9 /* Eternal-CS329E-Group-Project.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Eternal-CS329E-Group-Project.xcodeproj"; sourceTree = "<group>"; };
+		55F153B32EC478830015D5A9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		72AB32B42EA6A62600E84ED4 /* Eternal-CS329E-Group-Project.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Eternal-CS329E-Group-Project.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBD09B5A2EA800C100E355CF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		BBD09B5C2EA800C900E355CF /* HabitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStore.swift; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 		72AB32AB2EA6A62600E84ED4 = {
 			isa = PBXGroup;
 			children = (
+				55F153B32EC478830015D5A9 /* README.md */,
 				72AB32B62EA6A62600E84ED4 /* Eternal-CS329E-Group-Project */,
 				72AB32B52EA6A62600E84ED4 /* Products */,
 				BBD09B5A2EA800C100E355CF /* Models.swift */,
@@ -208,6 +211,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				55F153B42EC478830015D5A9 /* README.md in Resources */,
 				FDCC3C652EC2EAE400E9CEBB /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
