@@ -7,6 +7,8 @@
 
 import SwiftUI
 import UIKit
+import FirebaseCore
+import FirebaseAuth
 
 class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
@@ -67,7 +69,7 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
             cell.accessoryType = .none
         case .signOut:
             config.text = "Sign Out"
-            config.textProperties.color = .systemRed
+            config.textProperties.color = .accent
             cell.textLabel?.textAlignment = .center
             cell.accessoryView = nil
             cell.accessoryType = .none
@@ -97,8 +99,17 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
         case .notifications:
             break
         case .signOut:
-            let alert = UIAlertController(title: "Sign Out", message: "This is a placeholder.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert = UIAlertController(title: "Really sign out?", message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            let signOutAction = UIAlertAction(title: "Yes", style: .destructive) { _ in
+                do {
+                    try Auth.auth().signOut()
+                    self.dismiss(animated: true)
+                } catch {
+                    alert.message = "Sign Out Error"
+                }
+            }
+            alert.addAction(signOutAction)
             present(alert, animated: true)
         }
     }

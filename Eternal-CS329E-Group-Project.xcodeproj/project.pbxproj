@@ -24,6 +24,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		55D74DD92EC43BBE00D1CEC9 /* Eternal-CS329E-Group-Project.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Eternal-CS329E-Group-Project.xcodeproj"; sourceTree = "<group>"; };
 		72AB32B42EA6A62600E84ED4 /* Eternal-CS329E-Group-Project.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Eternal-CS329E-Group-Project.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBD09B5A2EA800C100E355CF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		BBD09B5C2EA800C900E355CF /* HabitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStore.swift; sourceTree = "<group>"; };
@@ -75,6 +76,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		55D74DE02EC43BBE00D1CEC9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		72AB32AB2EA6A62600E84ED4 = {
 			isa = PBXGroup;
 			children = (
@@ -175,6 +183,10 @@
 			productRefGroup = 72AB32B52EA6A62600E84ED4 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
+				{
+					ProductGroup = 55D74DE02EC43BBE00D1CEC9 /* Products */;
+					ProjectRef = 55D74DD92EC43BBE00D1CEC9 /* Eternal-CS329E-Group-Project.xcodeproj */;
+				},
 				{
 					ProductGroup = FDCC3C502EC2E7FA00E9CEBB /* Products */;
 					ProjectRef = FDCC3C492EC2E7FA00E9CEBB /* Eternal-CS329E-Group-Project.xcodeproj */;

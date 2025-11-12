@@ -3,6 +3,8 @@
 // Created / Edits done by Ori Parks (lwp369)
 
 import UIKit
+import FirebaseAuth
+import FirebaseFirestore
 
 final class NewHabitViewController: UIViewController {
 
@@ -54,4 +56,13 @@ final class NewHabitViewController: UIViewController {
         onCreate?(name, finalIcon)
         dismiss(animated: true)
     }
+    
+    /*
+    func saveHabit(habit: Habit){
+        let db = Firestore.firestore()
+        do {
+            try db.collection("habits").document(habit.id.uuidString).setData(from: Habit)
+        }
+    }
+    */
 }

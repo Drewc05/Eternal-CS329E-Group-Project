@@ -26,6 +26,18 @@ struct Habit: Identifiable, Hashable {
         self.bestStreak = bestStreak
         self.brightness = brightness
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case icon
+        case createdAt
+        case isExtinguished
+        case lastCheckInDate
+        case currentStreak
+        case bestStreak
+        case brightness
+    }
 }
 
 struct HabitEntry: Identifiable, Hashable {

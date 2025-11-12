@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import FirebaseCore
+import FirebaseAuth
 
 class SignUp: UIViewController {
 
@@ -22,11 +24,65 @@ class SignUp: UIViewController {
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
+        Auth.auth().addStateDidChangeListener() { ( auth, user ) in
+            if user != nil {
+                self.performSegue(withIdentifier: "Signup2Nav", sender: nil)
+                self.emailField.text = nil
+                self.pwField.text = nil
+            }
+        }
         updateVisibility()
     }
     
     @IBAction func onSignUp(_ sender: Any) {
+        if !emailField.hasText || !pwField.hasText || !confirmPWField.hasText {
+            let alertController = UIAlertController(title: "Couldn't Sign Up",
+                                                        message: "One or more fields are empty",
+                                                        preferredStyle: .alert)
+            let action1 = UIAlertAction(title: "OK", style: .default) { _ in
+                }
+            
+            alertController.addAction(action1)
+            self.present(alertController, animated: true, completion: nil)
+            return
+        }
         
+        if pwField.text!.count < 6 {
+            let alertController = UIAlertController(title: "Couldn't Sign Up",
+                                                        message: "Password must be 6 or more characters",
+                                                        preferredStyle: .alert)
+            let action1 = UIAlertAction(title: "OK", style: .default) { _ in
+                }
+            
+            alertController.addAction(action1)
+            self.present(alertController, animated: true, completion: nil)
+            return
+        }
+        
+        if pwField.text! != confirmPWField.text! {
+            let alertController = UIAlertController(title: "Couldn't Sign Up",
+                                                        message: "Passwords don't match",
+                                                        preferredStyle: .alert)
+            let action1 = UIAlertAction(title: "OK", style: .default) { _ in
+                }
+            
+            alertController.addAction(action1)
+            self.present(alertController, animated: true, completion: nil)
+            return
+        }
+        
+        Auth.auth().createUser(withEmail: emailField.text!, password: pwField.text!) { (result, error) in
+            if let error = error as NSError? {
+                let alertController = UIAlertController(title: "Couldn't Sign Up",
+                                                        message: error.localizedDescription,
+                                                        preferredStyle: .alert)
+                let action1 = UIAlertAction(title: "OK", style: .default) { _ in
+                }
+                alertController.addAction(action1)
+            } else {
+                
+            }
+        }
     }
     
     

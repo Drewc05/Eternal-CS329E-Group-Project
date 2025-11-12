@@ -29,12 +29,11 @@ class Login: UIViewController {
                 self.emailField.text = nil
                 self.pwField.text = nil
             }
-            
         }
         updateVisibility()
     }
     @IBAction func onLogIn(_ sender: Any) {
-        if emailField.state.isEmpty || pwField.state.isEmpty {
+        if !emailField.hasText || !pwField.hasText {
             DisplayInsufficentDetailsAlert()
             return
         }
@@ -77,14 +76,29 @@ class Login: UIViewController {
     }
     
     func forgotPassword(){
-        let alertController = UIAlertController(title: "Function Unavailable",
-                                                    message: "Forgot Password is unavailable at this time. Tough luck buddy.",
-                                                    preferredStyle: .alert)
-        let action1 = UIAlertAction(title: "Alright...", style: .default) { _ in
+        Auth.auth().sendPasswordReset(withEmail: emailField.text!) {
+            ( error ) in
+            if let error = error as NSError? {
+                let alertController = UIAlertController(title: "Error",
+                                                            message: "Please enter a valid email address",
+                                                            preferredStyle: .alert)
+                let action1 = UIAlertAction(title: "OK", style: .default) { _ in
+                    }
+                
+                alertController.addAction(action1)
+                self.present(alertController, animated: true, completion: nil)
+            } else {
+                let alertController = UIAlertController(title: "Success!",
+                                                            message: "Password reset email sent to \(self.emailField.text!)",
+                                                            preferredStyle: .alert)
+                let action1 = UIAlertAction(title: "Thanks", style: .default) { _ in
+                    }
+                
+                alertController.addAction(action1)
+                self.present(alertController, animated: true, completion: nil)
             }
+        }
         
-        alertController.addAction(action1)
-        self.present(alertController, animated: true, completion: nil)
     }
     
     @IBAction func onVisibility(_ sender: Any) {
