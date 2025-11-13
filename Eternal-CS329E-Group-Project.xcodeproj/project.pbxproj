@@ -8,7 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		55F153B42EC478830015D5A9 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 55F153B32EC478830015D5A9 /* README.md */; };
-		BBD09B5B2EA800C100E355CF /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B5A2EA800C100E355CF /* Models.swift */; };
+		BBB2A43B2EC571FA002580EB /* Models 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A43A2EC571FA002580EB /* Models 2.swift */; };
+		BBB2A4412EC5723A002580EB /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A4402EC5723A002580EB /* NotificationManager.swift */; };
+		BBB2A4432EC57248002580EB /* AnimationUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A4422EC57248002580EB /* AnimationUtility.swift */; };
+		BBB2A4452EC575AF002580EB /* AnimatedFlameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A4442EC575AF002580EB /* AnimatedFlameView.swift */; };
+		BBB2A4472EC5767D002580EB /* UI_ENHANCEMENTS_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = BBB2A4462EC5767D002580EB /* UI_ENHANCEMENTS_SUMMARY.md */; };
+		BBB2A4492EC576AB002580EB /* AnimationUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A4482EC576AB002580EB /* AnimationUtilities.swift */; };
+		BBB2A4532EC58044002580EB /* FIREBASE_INTEGRATION_STATUS.md in Resources */ = {isa = PBXBuildFile; fileRef = BBB2A4522EC58044002580EB /* FIREBASE_INTEGRATION_STATUS.md */; };
+		BBB2A4552EC58113002580EB /* FIREBASE_COMPLETE.md in Resources */ = {isa = PBXBuildFile; fileRef = BBB2A4542EC58113002580EB /* FIREBASE_COMPLETE.md */; };
 		BBD09B5D2EA800C900E355CF /* HabitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B5C2EA800C900E355CF /* HabitStore.swift */; };
 		BBD09B5F2EA800CF00E355CF /* NewHabitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B5E2EA800CF00E355CF /* NewHabitViewController.swift */; };
 		BBD09B612EA800D800E355CF /* CheckInViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD09B602EA800D800E355CF /* CheckInViewController.swift */; };
@@ -28,7 +35,14 @@
 		55D74DD92EC43BBE00D1CEC9 /* Eternal-CS329E-Group-Project.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Eternal-CS329E-Group-Project.xcodeproj"; sourceTree = "<group>"; };
 		55F153B32EC478830015D5A9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		72AB32B42EA6A62600E84ED4 /* Eternal-CS329E-Group-Project.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Eternal-CS329E-Group-Project.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BBD09B5A2EA800C100E355CF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		BBB2A43A2EC571FA002580EB /* Models 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models 2.swift"; sourceTree = "<group>"; };
+		BBB2A4402EC5723A002580EB /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		BBB2A4422EC57248002580EB /* AnimationUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationUtility.swift; sourceTree = "<group>"; };
+		BBB2A4442EC575AF002580EB /* AnimatedFlameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedFlameView.swift; sourceTree = "<group>"; };
+		BBB2A4462EC5767D002580EB /* UI_ENHANCEMENTS_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_ENHANCEMENTS_SUMMARY.md; sourceTree = "<group>"; };
+		BBB2A4482EC576AB002580EB /* AnimationUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationUtilities.swift; sourceTree = "<group>"; };
+		BBB2A4522EC58044002580EB /* FIREBASE_INTEGRATION_STATUS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIREBASE_INTEGRATION_STATUS.md; sourceTree = "<group>"; };
+		BBB2A4542EC58113002580EB /* FIREBASE_COMPLETE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIREBASE_COMPLETE.md; sourceTree = "<group>"; };
 		BBD09B5C2EA800C900E355CF /* HabitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStore.swift; sourceTree = "<group>"; };
 		BBD09B5E2EA800CF00E355CF /* NewHabitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewHabitViewController.swift; sourceTree = "<group>"; };
 		BBD09B602EA800D800E355CF /* CheckInViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInViewController.swift; sourceTree = "<group>"; };
@@ -91,7 +105,6 @@
 				55F153B32EC478830015D5A9 /* README.md */,
 				72AB32B62EA6A62600E84ED4 /* Eternal-CS329E-Group-Project */,
 				72AB32B52EA6A62600E84ED4 /* Products */,
-				BBD09B5A2EA800C100E355CF /* Models.swift */,
 				BBD09B5C2EA800C900E355CF /* HabitStore.swift */,
 				BBD09B5E2EA800CF00E355CF /* NewHabitViewController.swift */,
 				BBD09B602EA800D800E355CF /* CheckInViewController.swift */,
@@ -102,6 +115,14 @@
 				BBD09B6E2EA80A5A00E355CF /* ShopItemCell.swift */,
 				BBD09B702EA80A6500E355CF /* ShopHeaderView.swift */,
 				FDCC3C642EC2EAE400E9CEBB /* GoogleService-Info.plist */,
+				BBB2A43A2EC571FA002580EB /* Models 2.swift */,
+				BBB2A4402EC5723A002580EB /* NotificationManager.swift */,
+				BBB2A4422EC57248002580EB /* AnimationUtility.swift */,
+				BBB2A4442EC575AF002580EB /* AnimatedFlameView.swift */,
+				BBB2A4462EC5767D002580EB /* UI_ENHANCEMENTS_SUMMARY.md */,
+				BBB2A4482EC576AB002580EB /* AnimationUtilities.swift */,
+				BBB2A4522EC58044002580EB /* FIREBASE_INTEGRATION_STATUS.md */,
+				BBB2A4542EC58113002580EB /* FIREBASE_COMPLETE.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -212,6 +233,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				55F153B42EC478830015D5A9 /* README.md in Resources */,
+				BBB2A4532EC58044002580EB /* FIREBASE_INTEGRATION_STATUS.md in Resources */,
+				BBB2A4552EC58113002580EB /* FIREBASE_COMPLETE.md in Resources */,
+				BBB2A4472EC5767D002580EB /* UI_ENHANCEMENTS_SUMMARY.md in Resources */,
 				FDCC3C652EC2EAE400E9CEBB /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -224,13 +248,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				BBD09B652EA8026100E355CF /* DashboardHeaderView.swift in Sources */,
-				BBD09B5B2EA800C100E355CF /* Models.swift in Sources */,
+				BBB2A4432EC57248002580EB /* AnimationUtility.swift in Sources */,
+				BBB2A4412EC5723A002580EB /* NotificationManager.swift in Sources */,
 				BBD09B5D2EA800C900E355CF /* HabitStore.swift in Sources */,
 				BBD09B612EA800D800E355CF /* CheckInViewController.swift in Sources */,
 				BBD09B6F2EA80A5A00E355CF /* ShopItemCell.swift in Sources */,
+				BBB2A4492EC576AB002580EB /* AnimationUtilities.swift in Sources */,
 				BBD09B6D2EA8072500E355CF /* ShopViewController.swift in Sources */,
 				BBD09B5F2EA800CF00E355CF /* NewHabitViewController.swift in Sources */,
+				BBB2A43B2EC571FA002580EB /* Models 2.swift in Sources */,
 				BBD09B6B2EA8050B00E355CF /* Theme.swift in Sources */,
+				BBB2A4452EC575AF002580EB /* AnimatedFlameView.swift in Sources */,
 				BBD09B632EA8022D00E355CF /* DashboardHabitCell.swift in Sources */,
 				BBD09B712EA80A6500E355CF /* ShopHeaderView.swift in Sources */,
 			);

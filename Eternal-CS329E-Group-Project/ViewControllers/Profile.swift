@@ -115,7 +115,36 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
     }
 
     @objc private func toggleNotifications(_ sender: UISwitch) {
-        store.setNotificationsEnabled(sender.isOn)
+        if sender.isOn {
+            NotificationManager.shared.requestAuthorization { [weak self] granted in
+                if granted {
+                    self?.store.setNotificationsEnabled(true)
+                    NotificationManager.shared.scheduleDailyReminder(at: 20, minute: 0)
+                } else {
+                    // User denied, turn switch back off
+                    sender.isOn = false
+                    self?.showNotificationDeniedAlert()
+                }
+            }
+        } else {
+            store.setNotificationsEnabled(false)
+            NotificationManager.shared.cancelAllNotifications()
+        }
+    }
+    
+    private func showNotificationDeniedAlert() {
+        let alert = UIAlertController(
+            title: "Notifications Disabled",
+            message: "Please enable notifications in Settings to receive daily reminders.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
     }
 }
 

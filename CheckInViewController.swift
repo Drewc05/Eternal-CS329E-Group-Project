@@ -113,6 +113,14 @@ final class CheckInViewController: UIViewController {
     }
 
     private func showRewardToast(points: Int) {
+        // Celebrate with emojis for milestone streaks
+        if let idx = store.habits.firstIndex(where: { $0.id == habit.id }) {
+            let streak = store.habits[idx].currentStreak
+            if streak % 7 == 0 && streak > 0 {
+                AnimationUtility.celebrateWithEmojis(in: view)
+            }
+        }
+        
         let toast = UILabel()
         toast.text = "+\(points) coins"
         toast.font = .boldSystemFont(ofSize: 16)
@@ -131,17 +139,13 @@ final class CheckInViewController: UIViewController {
             toast.heightAnchor.constraint(equalToConstant: 44)
         ])
 
-        toast.alpha = 0
-        UIView.animate(withDuration: 0.2, animations: {
-            toast.alpha = 1
-        }) { _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                UIView.animate(withDuration: 0.25, animations: {
-                    toast.alpha = 0
-                }) { _ in
-                    self.navigationController?.popViewController(animated: true)
-                    self.onFinished?()
-                }
+        // Use bounce animation
+        AnimationUtility.bounceIn(toast, duration: 0.5)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            AnimationUtility.fadeOut(toast, duration: 0.3) { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+                self?.onFinished?()
             }
         }
     }

@@ -1,77 +1,196 @@
 // Eternal-CS329E-Group-Project
 // Group 15
-// Created / Edits done by Ori Parks (lwp369)
+// Created Colin Day (cdd2774) / Edits done by Ori Parks (lwp369)
 
 import UIKit
 
 final class DashboardHeaderView: UICollectionReusableView {
     static let reuseID = "DashboardHeaderView"
-
-    private let container = UIView()
-    private let streakLabel = UILabel()
-    private let checkInButton = UIButton(type: .system)
-
+    
     var onCheckInTapped: (() -> Void)?
-
+    
+    private let card = UIView()
+    private let animatedFlame = AnimatedFlameView()
+    private let particleEmitter = FlameParticleEmitter()
+    private let streakLabel = UILabel()
+    private let streakTitleLabel = UILabel()
+    private let checkInButton = UIButton(type: .system)
+    private let gradientLayer = CAGradientLayer()
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
     }
-
+    
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setup()
     }
-
+    
     private func setup() {
         backgroundColor = .clear
-
-        container.backgroundColor = UIColor(white: 1.0, alpha: 0.92)
-        container.layer.cornerRadius = 18
-        container.layer.masksToBounds = true
-
-        streakLabel.font = .boldSystemFont(ofSize: 24)
-        streakLabel.textColor = .label
-        streakLabel.text = "Streak: 0"
-
-        checkInButton.setTitle("Daily Check-In", for: .normal)
-        checkInButton.setTitleColor(.white, for: .normal)
-        checkInButton.titleLabel?.font = .boldSystemFont(ofSize: 16)
-        checkInButton.backgroundColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
-        checkInButton.layer.cornerRadius = 12
-        checkInButton.addTarget(self, action: #selector(checkInTapped), for: .touchUpInside)
-
-        addSubview(container)
-        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Card with gradient background
+        card.backgroundColor = UIColor(white: 1.0, alpha: 0.95)
+        card.layer.cornerRadius = 20
+        card.layer.masksToBounds = false
+        card.layer.shadowColor = UIColor.black.cgColor
+        card.layer.shadowOpacity = 0.12
+        card.layer.shadowOffset = CGSize(width: 0, height: 4)
+        card.layer.shadowRadius = 10
+        
+        // Add subtle gradient to card
+        gradientLayer.colors = [
+            UIColor(white: 1.0, alpha: 0.98).cgColor,
+            UIColor(red: 0.99, green: 0.96, blue: 0.93, alpha: 0.98).cgColor
+        ]
+        gradientLayer.locations = [0.0, 1.0]
+        gradientLayer.cornerRadius = 20
+        card.layer.insertSublayer(gradientLayer, at: 0)
+        
+        addSubview(card)
+        card.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            container.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
-            container.topAnchor.constraint(equalTo: topAnchor),
-            container.bottomAnchor.constraint(equalTo: bottomAnchor)
+            card.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            card.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            card.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            card.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
         ])
-
-        let h = UIStackView(arrangedSubviews: [streakLabel, UIView(), checkInButton])
-        h.axis = .horizontal
-        h.alignment = .center
-        h.spacing = 12
-
-        container.addSubview(h)
-        h.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Animated flame - positioned on LEFT side
+        card.addSubview(animatedFlame)
+        animatedFlame.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Particle emitter behind flame
+        card.insertSubview(particleEmitter, belowSubview: animatedFlame)
+        particleEmitter.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Streak number with "days" label
+        streakLabel.font = UIFont.rounded(ofSize: 28, weight: .bold)
+        streakLabel.textColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        streakLabel.textAlignment = .left
+        streakLabel.text = "0 🔥"
+        
+        // Check-in button - COMPACT
+        checkInButton.setTitle("Check-In", for: .normal)
+        checkInButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
+        checkInButton.backgroundColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        checkInButton.setTitleColor(.white, for: .normal)
+        checkInButton.layer.cornerRadius = 12
+        checkInButton.layer.shadowColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 0.3).cgColor
+        checkInButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        checkInButton.layer.shadowOpacity = 0.4
+        checkInButton.layer.shadowRadius = 4
+        checkInButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 16, bottom: 10, right: 16)
+        checkInButton.addTarget(self, action: #selector(checkInTapped), for: .touchUpInside)
+        
+        // HORIZONTAL layout - everything in one row: flame | number | button
+        let mainStack = UIStackView(arrangedSubviews: [animatedFlame, streakLabel, UIView(), checkInButton])
+        mainStack.axis = .horizontal
+        mainStack.alignment = .center
+        mainStack.spacing = 12
+        
+        card.addSubview(mainStack)
+        card.addSubview(particleEmitter)
+        
+        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
-            h.leadingAnchor.constraint(equalTo: container.layoutMarginsGuide.leadingAnchor),
-            h.trailingAnchor.constraint(equalTo: container.layoutMarginsGuide.trailingAnchor),
-            h.topAnchor.constraint(equalTo: container.topAnchor, constant: 16),
-            h.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16),
-            checkInButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 140),
-            checkInButton.heightAnchor.constraint(equalToConstant: 44)
+            // Main horizontal stack
+            mainStack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            mainStack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            mainStack.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            
+            // Flame size
+            animatedFlame.widthAnchor.constraint(equalToConstant: 45),
+            animatedFlame.heightAnchor.constraint(equalToConstant: 55),
+            
+            // Particle emitter behind flame
+            particleEmitter.centerXAnchor.constraint(equalTo: animatedFlame.centerXAnchor),
+            particleEmitter.centerYAnchor.constraint(equalTo: animatedFlame.centerYAnchor),
+            particleEmitter.widthAnchor.constraint(equalToConstant: 65),
+            particleEmitter.heightAnchor.constraint(equalToConstant: 85),
+            
+            // Button size
+            checkInButton.heightAnchor.constraint(equalToConstant: 40)
         ])
     }
-
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer.frame = card.bounds
+    }
+    
     @objc private func checkInTapped() {
+        // Haptic feedback
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        
+        // Animate button press
+        UIView.animate(withDuration: 0.1, animations: {
+            self.checkInButton.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        }) { _ in
+            UIView.animate(withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.5, options: [], animations: {
+                self.checkInButton.transform = .identity
+            })
+        }
+        
+        // Flame burst effect
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.4, initialSpringVelocity: 1.0, options: [], animations: {
+            self.animatedFlame.transform = CGAffineTransform(scaleX: 1.3, y: 1.3)
+        }) { _ in
+            UIView.animate(withDuration: 0.3) {
+                self.animatedFlame.transform = .identity
+            }
+        }
+        
         onCheckInTapped?()
     }
-
+    
     func configure(overallStreak: Int) {
-        streakLabel.text = "Streak: \(overallStreak)"
+        streakLabel.text = "\(overallStreak) 🔥"
+        
+        // Animate streak number change
+        streakLabel.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        streakLabel.alpha = 0.5
+        
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.5, options: [], animations: {
+            self.streakLabel.transform = .identity
+            self.streakLabel.alpha = 1.0
+        })
+        
+        // Update flame intensity based on streak
+        let intensity = min(1.0, Double(overallStreak) / 30.0)
+        animatedFlame.intensity = max(0.3, intensity)
+        
+        // Start animations
+        animatedFlame.startAnimating()
+        
+        if overallStreak > 0 {
+            particleEmitter.startEmitting()
+        } else {
+            particleEmitter.stopEmitting()
+        }
+        
+        // Adjust flame color based on streak milestones
+        if overallStreak >= 30 {
+            animatedFlame.flameColor = UIColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1)
+            particleEmitter.flameColor = UIColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1)
+        } else if overallStreak >= 14 {
+            animatedFlame.flameColor = UIColor(red: 0.95, green: 0.35, blue: 0.1, alpha: 1)
+            particleEmitter.flameColor = UIColor(red: 0.95, green: 0.35, blue: 0.1, alpha: 1)
+        } else if overallStreak >= 7 {
+            animatedFlame.flameColor = UIColor(red: 0.9, green: 0.25, blue: 0.05, alpha: 1)
+            particleEmitter.flameColor = UIColor(red: 0.9, green: 0.25, blue: 0.05, alpha: 1)
+        } else {
+            animatedFlame.flameColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+            particleEmitter.flameColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        animatedFlame.stopAnimating()
+        particleEmitter.stopEmitting()
     }
 }

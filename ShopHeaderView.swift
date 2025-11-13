@@ -2,19 +2,16 @@
 // Group 15
 // Created / Edits done by Ori Parks (lwp369)
 
-// Header for the Shop section. Shows balance, a flame icon, and a Wager button.
-// Comments follow the project's single-line comment standard.
-
 import UIKit
 
-// ShopHeaderView
+// ShopHeaderView - Enhanced with modern design
 final class ShopHeaderView: UICollectionReusableView {
     static let reuseID = "ShopHeaderView"
 
-    // Views
     private let card = UIView()
     private let imageView = UIImageView()
     private let balanceLabel = UILabel()
+    private let coinIcon = UILabel()
     private let wagerButton = UIButton(type: .system)
 
     var onWagerTapped: (() -> Void)?
@@ -29,75 +26,93 @@ final class ShopHeaderView: UICollectionReusableView {
         setup()
     }
 
-    // Setup
     private func setup() {
-        // Transparent background; card provides visual container
         backgroundColor = .clear
 
+        // Enhanced card with better shadow
+        card.layer.cornerRadius = 20
+        card.layer.masksToBounds = false
+        card.layer.shadowColor = UIColor.black.cgColor
+        card.layer.shadowOffset = CGSize(width: 0, height: 4)
+        card.layer.shadowOpacity = 0.1
+        card.layer.shadowRadius = 10
+        
         addSubview(card)
-        card.layer.cornerRadius = 18
-        card.layer.masksToBounds = true
         card.translatesAutoresizingMaskIntoConstraints = false
-        // Pin card to layout margins; rounded corners
         NSLayoutConstraint.activate([
             card.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
             card.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
-            card.topAnchor.constraint(equalTo: topAnchor),
-            card.bottomAnchor.constraint(equalTo: bottomAnchor)
+            card.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            card.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4)
         ])
 
-        // Icon sizing and content mode
+        // Flame icon
         imageView.contentMode = .scaleAspectFit
-        imageView.setContentHuggingPriority(.required, for: .horizontal)
-        imageView.setContentHuggingPriority(.required, for: .vertical)
+        
+        // Coin emoji
+        coinIcon.text = "🔥"
+        coinIcon.font = .systemFont(ofSize: 28)
 
-        // Prominent balance and a primary-colored Wager button
-        balanceLabel.font = UIFont.boldSystemFont(ofSize: 32)
+        // Modern balance with rounded font
+        balanceLabel.font = .rounded(ofSize: 36, weight: .heavy)
 
+        // Enhanced wager button
         wagerButton.setTitle("Wager", for: .normal)
-        wagerButton.titleLabel?.font = .boldSystemFont(ofSize: 16)
-        wagerButton.layer.cornerRadius = 12
+        wagerButton.titleLabel?.font = .rounded(ofSize: 16, weight: .bold)
+        wagerButton.layer.cornerRadius = 14
+        wagerButton.layer.shadowColor = UIColor.black.cgColor
+        wagerButton.layer.shadowOffset = CGSize(width: 0, height: 3)
+        wagerButton.layer.shadowOpacity = 0.2
+        wagerButton.layer.shadowRadius = 6
         wagerButton.addTarget(self, action: #selector(tapped), for: .touchUpInside)
 
-        let h = UIStackView(arrangedSubviews: [imageView, balanceLabel, UIView(), wagerButton])
+        // Horizontal layout with balance stack
+        let balanceStack = UIStackView(arrangedSubviews: [coinIcon, balanceLabel])
+        balanceStack.axis = .horizontal
+        balanceStack.spacing = 8
+        balanceStack.alignment = .center
+        
+        let h = UIStackView(arrangedSubviews: [balanceStack, UIView(), wagerButton])
         h.axis = .horizontal
         h.alignment = .center
-        h.spacing = 12
-        addSubview(h)
+        h.spacing = 16
+        
+        card.addSubview(h)
         h.translatesAutoresizingMaskIntoConstraints = false
-        // Horizontal layout: icon, balance, spacer, button
         NSLayoutConstraint.activate([
-            h.leadingAnchor.constraint(equalTo: card.layoutMarginsGuide.leadingAnchor),
-            h.trailingAnchor.constraint(equalTo: card.layoutMarginsGuide.trailingAnchor),
-            h.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
-            h.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
+            h.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
+            h.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
+            h.topAnchor.constraint(equalTo: card.topAnchor, constant: 20),
+            h.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -20)
         ])
 
-        imageView.widthAnchor.constraint(equalToConstant: 64).isActive = true
-        imageView.heightAnchor.constraint(equalToConstant: 64).isActive = true
-        wagerButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
+        wagerButton.widthAnchor.constraint(equalToConstant: 100).isActive = true
         wagerButton.heightAnchor.constraint(equalToConstant: 44).isActive = true
     }
 
-    // Actions
-    @objc private func tapped() { onWagerTapped?() }
+    @objc private func tapped() {
+        // Haptic feedback
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        
+        // Animate button
+        UIView.animate(withDuration: 0.1, animations: {
+            self.wagerButton.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        }) { _ in
+            UIView.animate(withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.5, options: [], animations: {
+                self.wagerButton.transform = .identity
+            })
+        }
+        
+        onWagerTapped?()
+    }
 
-    // Configuration
     func configure(balance: Int, imageName: String, theme: Theme, tintColor: UIColor? = nil) {
-        // Theme-driven colors and safe symbol/asset loading
         card.backgroundColor = theme.card
-        balanceLabel.textColor = theme.text
+        balanceLabel.textColor = theme.primary
         wagerButton.backgroundColor = theme.primary
         wagerButton.setTitleColor(.white, for: .normal)
-        // Prefer SF Symbol, then asset, else default flame
-        if let system = UIImage(systemName: imageName) {
-            imageView.image = system
-        } else if let asset = UIImage(named: imageName) {
-            imageView.image = asset
-        } else {
-            imageView.image = UIImage(systemName: "flame.fill")
-        }
-        imageView.tintColor = tintColor ?? theme.primary
-        balanceLabel.text = "$\(NumberFormatter.localizedString(from: NSNumber(value: balance), number: .decimal))"
+        
+        balanceLabel.text = "\(balance)"
     }
 }

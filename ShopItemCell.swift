@@ -2,20 +2,17 @@
 // Group 15
 // Created / Edits done by Ori Parks (lwp369)
 
-// Grid cell for shop items. Renders an icon, title, and price. Supports SF Symbols with optional tint.
-// Comments follow the project's single-line comment standard.
-
 import UIKit
 
-// ShopItemCell
+// ShopItemCell - Enhanced with modern typography and styling
 final class ShopItemCell: UICollectionViewCell {
     static let reuseID = "ShopItemCell"
 
-    // Views
     private let card = UIView()
     private let imageView = UIImageView()
     private let titleLabel = UILabel()
     private let priceLabel = UILabel()
+    private let coinIcon = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -27,70 +24,91 @@ final class ShopItemCell: UICollectionViewCell {
         setup()
     }
 
-    // Setup
     private func setup() {
         backgroundColor = .clear
         contentView.backgroundColor = .clear
 
-        // Card container for background and rounding
-        card.layer.cornerRadius = 14
-        card.layer.masksToBounds = true
+        // Enhanced card with shadow
+        card.layer.cornerRadius = 16
+        card.layer.masksToBounds = false
+        card.layer.shadowColor = UIColor.black.cgColor
+        card.layer.shadowOffset = CGSize(width: 0, height: 2)
+        card.layer.shadowOpacity = 0.08
+        card.layer.shadowRadius = 8
+        
         contentView.addSubview(card)
         card.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            card.topAnchor.constraint(equalTo: contentView.topAnchor),
-            card.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
+            card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
+            card.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
+            card.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4)
         ])
 
-        // Icon uses aspect fit; size constrained below
+        // Icon with better sizing
         imageView.contentMode = .scaleAspectFit
-        titleLabel.font = .preferredFont(forTextStyle: .headline)
-        priceLabel.font = .preferredFont(forTextStyle: .subheadline)
+        
+        // Modern typography with rounded font
+        titleLabel.font = .rounded(ofSize: 15, weight: .semibold)
+        titleLabel.numberOfLines = 2
+        titleLabel.textAlignment = .center
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.8
+        
+        // Coin icon (emoji)
+        coinIcon.text = "🔥"
+        coinIcon.font = .systemFont(ofSize: 14)
+        
+        // Price with custom styling
+        priceLabel.font = .rounded(ofSize: 16, weight: .bold)
+        priceLabel.textAlignment = .center
+        
+        // Price stack with coin
+        let priceStack = UIStackView(arrangedSubviews: [coinIcon, priceLabel])
+        priceStack.axis = .horizontal
+        priceStack.spacing = 4
+        priceStack.alignment = .center
 
-        // Vertical stack to center icon, then title and price
-        let v = UIStackView(arrangedSubviews: [imageView, titleLabel, priceLabel])
+        // Vertical stack
+        let v = UIStackView(arrangedSubviews: [imageView, titleLabel, priceStack])
         v.axis = .vertical
         v.alignment = .center
         v.spacing = 8
+        
         card.addSubview(v)
         v.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            v.leadingAnchor.constraint(equalTo: card.layoutMarginsGuide.leadingAnchor),
-            v.trailingAnchor.constraint(equalTo: card.layoutMarginsGuide.trailingAnchor),
-            v.topAnchor.constraint(equalTo: card.topAnchor, constant: 12),
-            v.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -12)
+            v.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
+            v.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12),
+            v.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
+            v.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -16)
         ])
 
-        imageView.heightAnchor.constraint(equalToConstant: 56).isActive = true
-        imageView.widthAnchor.constraint(equalToConstant: 56).isActive = true
+        imageView.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        imageView.widthAnchor.constraint(equalToConstant: 48).isActive = true
     }
 
-    // Configuration
-    // Applies theme colors, sets texts, and loads image (SF Symbol preferred). Optional tint overrides theme.
     func configure(title: String, price: Int, imageName: String, theme: Theme, tintColor: UIColor? = nil) {
         card.backgroundColor = theme.card
         titleLabel.textColor = theme.text
-        priceLabel.textColor = theme.secondaryText
+        priceLabel.textColor = theme.primary
 
         titleLabel.text = title
         priceLabel.text = "\(price)"
 
-        // Prefer SF Symbol by name; apply tint
+        // Load SF Symbol
         if let system = UIImage(systemName: imageName) {
             imageView.image = system
             imageView.tintColor = tintColor ?? theme.primary
-        }
-        // Fall back to asset image if provided
-        else if let asset = UIImage(named: imageName) {
-            imageView.image = asset
-            if let tint = tintColor { imageView.tintColor = tint }
-        }
-        // Default to flame symbol if neither found
-        else {
+        } else {
             imageView.image = UIImage(systemName: "flame.fill")
             imageView.tintColor = tintColor ?? theme.primary
         }
+        
+        // Add subtle scale animation on appear
+        transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: [], animations: {
+            self.transform = .identity
+        })
     }
 }

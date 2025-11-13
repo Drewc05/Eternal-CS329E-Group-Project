@@ -71,9 +71,30 @@ final class DashboardHabitCell: UITableViewCell {
         streakLabel.text = "\(habit.currentStreak)🔥"
         let base = UIImage(systemName: habit.icon) ?? UIImage(systemName: "flame.fill")
         iconView.image = base?.withRenderingMode(.alwaysTemplate)
-        iconView.alpha = CGFloat(max(0.2, min(1.0, habit.brightness)))
-        // subtle scale effect by brightness
-        let scale = CGFloat(0.95 + 0.1 * habit.brightness)
-        iconView.transform = CGAffineTransform(scaleX: scale, y: scale)
+        
+        // Animate alpha and scale changes
+        UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut], animations: {
+            self.iconView.alpha = CGFloat(max(0.2, min(1.0, habit.brightness)))
+            let scale = CGFloat(0.95 + 0.1 * habit.brightness)
+            self.iconView.transform = CGAffineTransform(scaleX: scale, y: scale)
+        })
+        
+        // Add subtle pulse animation for high streaks
+        if habit.currentStreak >= 7 {
+            addPulseAnimation()
+        } else {
+            card.layer.removeAnimation(forKey: "pulse")
+        }
+    }
+    
+    private func addPulseAnimation() {
+        let pulse = CABasicAnimation(keyPath: "transform.scale")
+        pulse.duration = 1.5
+        pulse.fromValue = 1.0
+        pulse.toValue = 1.02
+        pulse.autoreverses = true
+        pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        card.layer.add(pulse, forKey: "pulse")
     }
 }
