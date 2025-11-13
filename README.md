@@ -53,6 +53,7 @@ Contributions
     - linked each day of the calendar to the specific notes written for the habit that day
     - expanded firebase to save the notes you write each day
     - improved the writing notes function so you don't have to backspace all the placeholder text
+    - resized the calendar to fit every day
 
 Deviations
     - Enhanced beyond original scope with sophisticated animations and cloud sync
