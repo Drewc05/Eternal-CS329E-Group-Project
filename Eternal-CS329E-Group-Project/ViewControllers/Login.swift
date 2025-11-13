@@ -19,19 +19,30 @@ class Login: UIViewController {
     let smallEyeImage = UIImage(systemName: "eye", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
     let smallEyeSlashImage = UIImage(systemName: "eye.slash", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
     
+    private var authStateListenerHandle: AuthStateDidChangeListenerHandle?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
-        Auth.auth().addStateDidChangeListener() { ( auth, user ) in
+        authStateListenerHandle = Auth.auth().addStateDidChangeListener() { ( auth, user ) in
             if user != nil {
-                self.performSegue(withIdentifier: "Login2Nav", sender: nil)
-                self.emailField.text = nil
-                self.pwField.text = nil
+                HabitStore.shared.clearUserData()
+                HabitStore.shared.loadFromFirebase {
+                    self.performSegue(withIdentifier: "Login2Nav", sender: nil)
+                    self.emailField.text = nil
+                    self.pwField.text = nil
+                }
             }
         }
         updateVisibility()
     }
+    
+    deinit {
+        if let handle = authStateListenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+    
     @IBAction func onLogIn(_ sender: Any) {
         if !emailField.hasText || !pwField.hasText {
             DisplayInsufficentDetailsAlert()

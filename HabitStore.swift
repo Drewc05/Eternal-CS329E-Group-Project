@@ -9,8 +9,8 @@ import FirebaseAuth
 final class HabitStore {
     static let shared = HabitStore()
 
-    private let defaults = UserDefaults.standard
     private let db = Firestore.firestore()
+    private let defaults = UserDefaults.standard
     
     private enum Keys {
         static let walletBalance = "wallet.balance"
@@ -27,25 +27,14 @@ final class HabitStore {
     private(set) var settings = AppSettings()
     private(set) var wagers: [Wager] = []
 
-    // Inventory (in-memory)
     private(set) var streakFreezesOwned: Int = 0
     private(set) var activeMultiplierUntil: Date? = nil
     
-    // Firebase helper
-    private var userId: String {
-        // For now, use a device-specific ID. In production, use Auth.auth().currentUser?.uid
-        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "default-user"
-        return deviceId
+    private var userId: String? {
+        return Auth.auth().currentUser?.uid
     }
 
     private init() {
-        // Seed with sample habits
-        habits = [
-            Habit(name: "Make Bed", icon: "bed.double.fill", brightness: 0.8),
-            Habit(name: "Walk", icon: "figure.walk", brightness: 0.5)
-        ]
-
-        // Load from UserDefaults as backup
         wallet.balance = defaults.integer(forKey: Keys.walletBalance)
         wallet.totalEarned = defaults.integer(forKey: Keys.walletTotal)
         settings.themeKey = defaults.string(forKey: Keys.themeKey) ?? settings.themeKey
@@ -54,23 +43,314 @@ final class HabitStore {
         if let ts = defaults.object(forKey: Keys.multiplierUntil) as? TimeInterval {
             activeMultiplierUntil = Date(timeIntervalSince1970: ts)
         }
-        
-        // Load data from Firebase
-        loadFromFirebase()
     }
 
-    // Habit CRUD
+    func clearUserData() {
+        habits = []
+        entriesByDay = [:]
+        wallet = CurrencyWallet()
+        settings = AppSettings()
+        wagers = []
+        streakFreezesOwned = 0
+        activeMultiplierUntil = nil
+    }
+
+    func loadFromFirebase(completion: (() -> Void)? = nil) {
+        guard let uid = userId else {
+            completion?()
+            return
+        }
+        
+        print("📥 Starting Firebase load for user: \(uid)")
+        clearUserData()
+        
+        let group = DispatchGroup()
+        
+        group.enter()
+        loadHabitsFromFirebase(uid: uid) {
+            group.leave()
+        }
+        
+        group.enter()
+        loadEntriesFromFirebase(uid: uid) {
+            group.leave()
+        }
+        
+        group.enter()
+        loadWalletFromFirebase(uid: uid) {
+            group.leave()
+        }
+        
+        group.enter()
+        loadSettingsFromFirebase(uid: uid) {
+            group.leave()
+        }
+        
+        group.enter()
+        loadInventoryFromFirebase(uid: uid) {
+            group.leave()
+        }
+        
+        group.notify(queue: .main) {
+            NotificationCenter.default.post(name: NSNotification.Name("HabitDataLoaded"), object: nil)
+            print("✅ All data loaded from Firebase")
+            completion?()
+        }
+    }
+
+    private func loadHabitsFromFirebase(uid: String, completion: @escaping () -> Void) {
+        print("📥 Loading habits for user: \(uid)")
+        db.collection("users").document(uid).collection("habits").getDocuments { [weak self] snapshot, error in
+            guard let self = self else {
+                completion()
+                return
+            }
+            
+            if let error = error {
+                print("❌ Error loading habits: \(error.localizedDescription)")
+                completion()
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                print("⚠️ No habit documents found")
+                completion()
+                return
+            }
+            
+            print("📦 Found \(documents.count) habit documents")
+            
+            self.habits = documents.compactMap { doc in
+                let data = doc.data()
+                
+                guard
+                    let idString = data["id"] as? String,
+                    let id = UUID(uuidString: idString),
+                    let name = data["name"] as? String,
+                    let icon = data["icon"] as? String
+                else {
+                    print("⚠️ Failed to parse habit document: \(doc.documentID)")
+                    return nil
+                }
+                
+                let currentStreak = data["currentStreak"] as? Int ?? 0
+                let bestStreak = data["bestStreak"] as? Int ?? 0
+                let brightness = data["brightness"] as? Double ?? 0.6
+                let isExtinguished = data["isExtinguished"] as? Bool ?? false
+                
+                var lastCheckInDate: Date? = nil
+                if let timestamp = data["lastCheckInDate"] as? Timestamp {
+                    lastCheckInDate = timestamp.dateValue()
+                }
+                
+                let habit = Habit(
+                    id: id,
+                    name: name,
+                    icon: icon,
+                    createdAt: Date(),
+                    isExtinguished: isExtinguished,
+                    lastCheckInDate: lastCheckInDate,
+                    currentStreak: currentStreak,
+                    bestStreak: bestStreak,
+                    brightness: brightness
+                )
+                
+                print("✅ Loaded habit: \(habit.name)")
+                return habit
+            }
+            
+            print("✅ Total habits loaded: \(self.habits.count)")
+            completion()
+        }
+    }
+
+    func loadEntriesFromFirebase(completion: (() -> Void)? = nil) {
+        guard let uid = userId else {
+            completion?()
+            return
+        }
+        loadEntriesFromFirebase(uid: uid, completion: completion ?? {})
+    }
+
+    private func loadEntriesFromFirebase(uid: String, completion: @escaping () -> Void) {
+        print("📥 Loading entries for user: \(uid)")
+        db.collection("users").document(uid).collection("entries").order(by: "date", descending: false).getDocuments { [weak self] snapshot, error in
+            guard let self = self else {
+                completion()
+                return
+            }
+            
+            if let error = error {
+                print("❌ Error loading entries: \(error.localizedDescription)")
+                completion()
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                print("⚠️ No entry documents found")
+                completion()
+                return
+            }
+            
+            print("📦 Found \(documents.count) entry documents")
+            
+            self.entriesByDay.removeAll()
+            
+            for doc in documents {
+                let data = doc.data()
+                
+                guard
+                    let idString = data["id"] as? String,
+                    let id = UUID(uuidString: idString),
+                    let habitIDString = data["habitID"] as? String,
+                    let habitID = UUID(uuidString: habitIDString),
+                    let timestamp = data["date"] as? Timestamp,
+                    let didComplete = data["didComplete"] as? Bool
+                else {
+                    print("⚠️ Failed to parse entry document: \(doc.documentID)")
+                    continue
+                }
+                
+                let date = timestamp.dateValue().startOfDay
+                let value = data["value"] as? Double
+                let note = data["note"] as? String
+                
+                let entry = HabitEntry(
+                    id: id,
+                    habitID: habitID,
+                    date: date,
+                    didComplete: didComplete,
+                    value: value == 0 ? nil : value,
+                    note: note?.isEmpty == true ? nil : note
+                )
+                
+                self.entriesByDay[date, default: []].append(entry)
+            }
+            
+            print("✅ Loaded \(documents.count) entries from Firebase")
+            completion()
+        }
+    }
+
+    private func loadWalletFromFirebase(uid: String, completion: @escaping () -> Void) {
+        db.collection("users").document(uid).collection("wallet").document("data").getDocument { [weak self] snapshot, error in
+            guard let self = self else {
+                completion()
+                return
+            }
+            
+            if let error = error {
+                print("❌ Error loading wallet: \(error.localizedDescription)")
+                completion()
+                return
+            }
+            
+            if let data = snapshot?.data() {
+                if let balance = data["balance"] as? Int {
+                    self.wallet.balance = balance
+                }
+                if let totalEarned = data["totalEarned"] as? Int {
+                    self.wallet.totalEarned = totalEarned
+                }
+                print("✅ Wallet loaded from Firebase")
+            }
+            
+            completion()
+        }
+    }
+
+    private func loadSettingsFromFirebase(uid: String, completion: @escaping () -> Void) {
+        db.collection("users").document(uid).collection("settings").document("data").getDocument { [weak self] snapshot, error in
+            guard let self = self else {
+                completion()
+                return
+            }
+            
+            if let error = error {
+                print("❌ Error loading settings: \(error.localizedDescription)")
+                completion()
+                return
+            }
+            
+            if let data = snapshot?.data() {
+                if let themeKey = data["themeKey"] as? String {
+                    self.settings.themeKey = themeKey
+                }
+                if let notificationsEnabled = data["notificationsEnabled"] as? Bool {
+                    self.settings.notificationsEnabled = notificationsEnabled
+                }
+                print("✅ Settings loaded from Firebase")
+            }
+            
+            completion()
+        }
+    }
+
+    private func loadInventoryFromFirebase(uid: String, completion: @escaping () -> Void) {
+        db.collection("users").document(uid).collection("inventory").document("data").getDocument { [weak self] snapshot, error in
+            guard let self = self else {
+                completion()
+                return
+            }
+            
+            if let error = error {
+                print("❌ Error loading inventory: \(error.localizedDescription)")
+                completion()
+                return
+            }
+            
+            if let data = snapshot?.data() {
+                self.streakFreezesOwned = data["freezes"] as? Int ?? 0
+                if let ts = data["multiplierUntil"] as? Timestamp {
+                    self.activeMultiplierUntil = ts.dateValue()
+                }
+                print("✅ Inventory loaded from Firebase")
+            }
+            
+            completion()
+        }
+    }
+
     func addHabit(name: String, icon: String) {
         let habit = Habit(name: name, icon: icon)
         habits.append(habit)
+        saveHabitToFirebase(habit)
+    }
+
+    private func saveHabitToFirebase(_ habit: Habit) {
+        guard let uid = userId else {
+            print("❌ No user ID for saving habit")
+            return
+        }
+        
+        let habitData: [String: Any] = [
+            "id": habit.id.uuidString,
+            "name": habit.name,
+            "icon": habit.icon,
+            "currentStreak": habit.currentStreak,
+            "bestStreak": habit.bestStreak,
+            "brightness": habit.brightness,
+            "lastCheckInDate": habit.lastCheckInDate != nil ? Timestamp(date: habit.lastCheckInDate!) : NSNull(),
+            "isExtinguished": habit.isExtinguished,
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        print("💾 Saving habit: \(habit.name)")
+        db.collection("users").document(uid).collection("habits").document(habit.id.uuidString).setData(habitData, merge: true) { error in
+            if let error = error {
+                print("❌ Error saving habit: \(error.localizedDescription)")
+            } else {
+                print("✅ Habit saved successfully")
+            }
+        }
     }
 
     func extinguishHabit(id: UUID) {
         guard let idx = habits.firstIndex(where: { $0.id == id }) else { return }
         habits[idx].isExtinguished = true
+        saveHabitToFirebase(habits[idx])
     }
 
-    // Check-ins
     func entry(for habitID: UUID, on day: Date = Date().startOfDay) -> HabitEntry? {
         entriesByDay[day]?.first(where: { $0.habitID == habitID })
     }
@@ -80,18 +360,39 @@ final class HabitStore {
         let entry = HabitEntry(habitID: habitID, date: day, didComplete: didComplete, value: value, note: note)
 
         if var dayEntries = entriesByDay[day], let idx = dayEntries.firstIndex(where: { $0.habitID == habitID }) {
-            // Update existing
             dayEntries[idx] = entry
             entriesByDay[day] = dayEntries
         } else {
             entriesByDay[day, default: []].append(entry)
         }
 
-        updateStreaksAndRewards(for: habitID, didComplete: didComplete, on: day)
-        persist()
-        
-        // Save entry to Firebase
         saveEntryToFirebase(entry)
+        updateStreaksAndRewards(for: habitID, didComplete: didComplete, on: day)
+    }
+
+    private func saveEntryToFirebase(_ entry: HabitEntry) {
+        guard let uid = userId else {
+            print("❌ No user ID for saving entry")
+            return
+        }
+        
+        let entryData: [String: Any] = [
+            "id": entry.id.uuidString,
+            "habitID": entry.habitID.uuidString,
+            "date": Timestamp(date: entry.date),
+            "didComplete": entry.didComplete,
+            "value": entry.value ?? 0,
+            "note": entry.note ?? "",
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(uid).collection("entries").document(entry.id.uuidString).setData(entryData, merge: true) { error in
+            if let error = error {
+                print("❌ Error saving entry: \(error.localizedDescription)")
+            } else {
+                print("✅ Entry saved successfully")
+            }
+        }
     }
 
     func pendingHabitsForToday() -> [Habit] {
@@ -100,7 +401,6 @@ final class HabitStore {
         return habits.filter { !completedIDs.contains($0.id) && !$0.isExtinguished }
     }
 
-    // Logic
     private func updateStreaksAndRewards(for habitID: UUID, didComplete: Bool, on day: Date) {
         guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
         var habit = habits[idx]
@@ -117,17 +417,15 @@ final class HabitStore {
             wallet.balance += rewardForCheckIn(streak: habit.currentStreak)
             wallet.totalEarned += rewardForCheckIn(streak: habit.currentStreak)
         } else {
-            // Missed: try to consume a freeze to preserve streak
             if useStreakFreezeIfAvailable() {
-                // Preserve streak and brightness; record entry only
             } else {
                 habit.brightness = max(0.2, habit.brightness - 0.1)
-                // Optionally reset overall streak logic here if implemented
             }
         }
 
         habits[idx] = habit
-        persist()
+        saveHabitToFirebase(habit)
+        saveWalletToFirebase()
     }
 
     private func rewardForCheckIn(streak: Int) -> Int {
@@ -142,13 +440,13 @@ final class HabitStore {
 
     func addStreakFreeze(count: Int = 1) {
         streakFreezesOwned += count
-        persist()
+        saveInventoryToFirebase()
     }
 
     func useStreakFreezeIfAvailable() -> Bool {
         if streakFreezesOwned > 0 {
             streakFreezesOwned -= 1
-            persist()
+            saveInventoryToFirebase()
             return true
         } else {
             return false
@@ -157,7 +455,7 @@ final class HabitStore {
 
     func activateMultiplier(hours: Int = 24) {
         activeMultiplierUntil = Date().addingTimeInterval(TimeInterval(hours * 3600))
-        persist()
+        saveInventoryToFirebase()
     }
 
     func isMultiplierActive(now: Date = Date()) -> Bool {
@@ -166,19 +464,19 @@ final class HabitStore {
 
     func setThemeKey(_ key: String) {
         settings.themeKey = key
-        persist()
+        saveSettingsToFirebase()
     }
 
     func setNotificationsEnabled(_ enabled: Bool) {
         settings.notificationsEnabled = enabled
-        persist()
+        saveSettingsToFirebase()
     }
 
     @discardableResult
     func spendCoins(_ amount: Int) -> Bool {
         guard amount > 0, wallet.balance >= amount else { return false }
         wallet.balance -= amount
-        persist()
+        saveWalletToFirebase()
         return true
     }
 
@@ -186,19 +484,50 @@ final class HabitStore {
         guard amount > 0 else { return }
         wallet.balance += amount
         wallet.totalEarned += amount
-        persist()
+        saveWalletToFirebase()
     }
 
-    private func persist() {
+    private func saveWalletToFirebase() {
+        guard let uid = userId else { return }
+        
+        let walletData: [String: Any] = [
+            "balance": wallet.balance,
+            "totalEarned": wallet.totalEarned,
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(uid).collection("wallet").document("data").setData(walletData, merge: true)
         defaults.set(wallet.balance, forKey: Keys.walletBalance)
         defaults.set(wallet.totalEarned, forKey: Keys.walletTotal)
+    }
+
+    private func saveSettingsToFirebase() {
+        guard let uid = userId else { return }
+        
+        let settingsData: [String: Any] = [
+            "themeKey": settings.themeKey,
+            "notificationsEnabled": settings.notificationsEnabled,
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(uid).collection("settings").document("data").setData(settingsData, merge: true)
         defaults.set(settings.themeKey, forKey: Keys.themeKey)
         defaults.set(settings.notificationsEnabled, forKey: Keys.notifications)
+    }
+
+    private func saveInventoryToFirebase() {
+        guard let uid = userId else { return }
+        
+        let inventoryData: [String: Any] = [
+            "freezes": streakFreezesOwned,
+            "multiplierUntil": activeMultiplierUntil != nil ? Timestamp(date: activeMultiplierUntil!) : NSNull(),
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(uid).collection("inventory").document("data").setData(inventoryData, merge: true)
         defaults.set(streakFreezesOwned, forKey: Keys.freezes)
         defaults.set(activeMultiplierUntil?.timeIntervalSince1970, forKey: Keys.multiplierUntil)
     }
-    
-    // MARK: - Wager Management
     
     func addWager(_ wager: Wager) {
         wagers.append(wager)
@@ -211,171 +540,18 @@ final class HabitStore {
         
         for (index, wager) in wagers.enumerated() where wager.isActive {
             if today > wager.endDate {
-                // Wager period ended
                 if allHabitsCompleted {
-                    // Won the wager
                     wagers[index].isWon = true
                     wagers[index].isActive = false
                     addCoins(wager.amount * 2)
                 } else {
-                    // Lost the wager
                     wagers[index].isWon = false
                     wagers[index].isActive = false
                 }
             } else if !allHabitsCompleted && Calendar.current.isDateInToday(today) {
-                // Failed to complete all habits today during active wager
                 wagers[index].isWon = false
                 wagers[index].isActive = false
             }
         }
-    }
-    
-    // MARK: - Firebase Methods
-    
-    /// Save an entry to Firebase
-    private func saveEntryToFirebase(_ entry: HabitEntry) {
-        let entryData: [String: Any] = [
-            "id": entry.id.uuidString,
-            "habitID": entry.habitID.uuidString,
-            "date": Timestamp(date: entry.date),
-            "didComplete": entry.didComplete,
-            "value": entry.value ?? 0,
-            "note": entry.note ?? "",
-            "timestamp": FieldValue.serverTimestamp()
-        ]
-        
-        db.collection("users")
-            .document(userId)
-            .collection("entries")
-            .document(entry.id.uuidString)
-            .setData(entryData, merge: true) { error in
-                if let error = error {
-                    print("Error saving entry to Firebase: \(error.localizedDescription)")
-                } else {
-                    print("✅ Entry saved to Firebase successfully")
-                }
-            }
-    }
-    
-    /// Load all data from Firebase
-    func loadFromFirebase() {
-        loadEntriesFromFirebase()
-        loadHabitsFromFirebase()
-        loadWalletFromFirebase()
-    }
-    
-    /// Load entries from Firebase
-    func loadEntriesFromFirebase(completion: (() -> Void)? = nil) {
-        db.collection("users")
-            .document(userId)
-            .collection("entries")
-            .order(by: "date", descending: false)
-            .getDocuments { [weak self] snapshot, error in
-                guard let self = self else { return }
-                
-                if let error = error {
-                    print("Error loading entries from Firebase: \(error.localizedDescription)")
-                    completion?()
-                    return
-                }
-                
-                guard let documents = snapshot?.documents else {
-                    completion?()
-                    return
-                }
-                
-                // Clear existing entries
-                self.entriesByDay.removeAll()
-                
-                // Parse documents into entries
-                for doc in documents {
-                    let data = doc.data()
-                    
-                    guard
-                        let idString = data["id"] as? String,
-                        let id = UUID(uuidString: idString),
-                        let habitIDString = data["habitID"] as? String,
-                        let habitID = UUID(uuidString: habitIDString),
-                        let timestamp = data["date"] as? Timestamp,
-                        let didComplete = data["didComplete"] as? Bool
-                    else { continue }
-                    
-                    let date = timestamp.dateValue().startOfDay
-                    let value = data["value"] as? Double
-                    let note = data["note"] as? String
-                    
-                    let entry = HabitEntry(
-                        id: id,
-                        habitID: habitID,
-                        date: date,
-                        didComplete: didComplete,
-                        value: value == 0 ? nil : value,
-                        note: note?.isEmpty == true ? nil : note
-                    )
-                    
-                    self.entriesByDay[date, default: []].append(entry)
-                }
-                
-                print("✅ Loaded \(documents.count) entries from Firebase")
-                completion?()
-            }
-    }
-    
-    /// Load habits from Firebase (optional - for future use)
-    private func loadHabitsFromFirebase() {
-        db.collection("users")
-            .document(userId)
-            .collection("habits")
-            .getDocuments { [weak self] snapshot, error in
-                if let error = error {
-                    print("Error loading habits: \(error.localizedDescription)")
-                    return
-                }
-                
-                // For now, keep using local habits
-                // In the future, you can parse and use Firebase habits
-                print("✅ Habits collection checked")
-            }
-    }
-    
-    /// Load wallet from Firebase (optional - for future use)
-    private func loadWalletFromFirebase() {
-        db.collection("users")
-            .document(userId)
-            .collection("wallet")
-            .document("main")
-            .getDocument { [weak self] snapshot, error in
-                guard let self = self, let data = snapshot?.data() else { return }
-                
-                if let balance = data["balance"] as? Int {
-                    self.wallet.balance = balance
-                }
-                if let totalEarned = data["totalEarned"] as? Int {
-                    self.wallet.totalEarned = totalEarned
-                }
-                
-                print("✅ Wallet loaded from Firebase")
-            }
-    }
-    
-    /// Save habit to Firebase
-    func saveHabitToFirebase(_ habit: Habit) {
-        let habitData: [String: Any] = [
-            "id": habit.id.uuidString,
-            "name": habit.name,
-            "icon": habit.icon,
-            "currentStreak": habit.currentStreak,
-            "bestStreak": habit.bestStreak,
-            "brightness": habit.brightness,
-            "lastCheckInDate": habit.lastCheckInDate != nil ? Timestamp(date: habit.lastCheckInDate!) : NSNull(),
-            "isExtinguished": habit.isExtinguished,
-            "timestamp": FieldValue.serverTimestamp()
-        ]
-        
-        db.collection("users")
-            .document(userId)
-            .collection("habits")
-            .document(habit.id.uuidString)
-            .setData(habitData, merge: true)
     }
 }

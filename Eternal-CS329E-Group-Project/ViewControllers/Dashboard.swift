@@ -8,6 +8,7 @@
 
 import SwiftUI
 import UIKit
+import FirebaseAuth
 
 class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewDelegate {
 
@@ -31,10 +32,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         titleLabel.textColor = .label
         navigationItem.titleView = titleLabel
 
-        // Removed large titles for centered effect
-        // navigationController?.navigationBar.prefersLargeTitles = true
-        // navigationItem.largeTitleDisplayMode = .always
-
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addHabitTapped))
 
         let layout = createLayout()
@@ -53,12 +50,31 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
             collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(habitDataLoaded), name: NSNotification.Name("HabitDataLoaded"), object: nil)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func habitDataLoaded() {
+        print("🔄 Dashboard received data loaded notification")
+        collectionView.reloadData()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        store.checkWagersForToday()
-        collectionView.reloadData()
+        
+        if Auth.auth().currentUser != nil {
+            print("🔄 Dashboard viewWillAppear - reloading from Firebase")
+            store.loadFromFirebase {
+                self.store.checkWagersForToday()
+                self.collectionView.reloadData()
+            }
+        } else {
+            collectionView.reloadData()
+        }
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
@@ -73,15 +89,12 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         section.interGroupSpacing = 12
         section.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 24, trailing: 16)
 
-        // Smaller, more compact header
         let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(100))
         let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
         section.boundarySupplementaryItems = [header]
 
         return UICollectionViewCompositionalLayout(section: section)
     }
-
-    // MARK: - Actions
 
     @objc private func addHabitTapped() {
         let vc = NewHabitViewController()
@@ -93,8 +106,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         present(nav, animated: true)
     }
 
-    // MARK: - DataSource
-
     func numberOfSections(in collectionView: UICollectionView) -> Int { 1 }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -105,7 +116,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DashboardHabitItemCell.reuseID, for: indexPath) as! DashboardHabitItemCell
         cell.configure(with: store.habits[indexPath.item])
         
-        // Stagger animations for visual appeal
         cell.alpha = 0
         cell.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
         
@@ -120,7 +130,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let habit = store.habits[indexPath.item]
         
-        // Add selection feedback
         if let cell = collectionView.cellForItem(at: indexPath) {
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
@@ -147,10 +156,7 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         return header
     }
 
-    // MARK: - Helpers
-
     private func overallStreak() -> Int {
-        // Simple overall: max habit streak for now
         return store.habits.map { $0.currentStreak }.max() ?? 0
     }
 
@@ -164,7 +170,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         let vc = CheckInViewController(habit: habit)
         vc.onFinished = { [weak self] in
             guard let self = self else { return }
-            // Remove the just-handled habit
             if let idx = self.pendingQueue.firstIndex(where: { $0.id == habit.id }) {
                 self.pendingQueue.remove(at: idx)
             }

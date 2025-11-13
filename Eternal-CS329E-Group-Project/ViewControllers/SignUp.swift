@@ -20,18 +20,28 @@ class SignUp: UIViewController {
     let smallEyeImage = UIImage(systemName: "eye", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
     let smallEyeSlashImage = UIImage(systemName: "eye.slash", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
     
+    private var authStateListenerHandle: AuthStateDidChangeListenerHandle?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Do any additional setup after loading the view.
-        Auth.auth().addStateDidChangeListener() { ( auth, user ) in
+        authStateListenerHandle = Auth.auth().addStateDidChangeListener() { ( auth, user ) in
             if user != nil {
-                self.performSegue(withIdentifier: "Signup2Nav", sender: nil)
-                self.emailField.text = nil
-                self.pwField.text = nil
+                HabitStore.shared.clearUserData()
+                HabitStore.shared.loadFromFirebase {
+                    self.performSegue(withIdentifier: "Signup2Nav", sender: nil)
+                    self.emailField.text = nil
+                    self.pwField.text = nil
+                }
             }
         }
         updateVisibility()
+    }
+    
+    deinit {
+        if let handle = authStateListenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
     }
     
     @IBAction func onSignUp(_ sender: Any) {
@@ -79,6 +89,7 @@ class SignUp: UIViewController {
                 let action1 = UIAlertAction(title: "OK", style: .default) { _ in
                 }
                 alertController.addAction(action1)
+                self.present(alertController, animated: true, completion: nil)
             } else {
                 
             }

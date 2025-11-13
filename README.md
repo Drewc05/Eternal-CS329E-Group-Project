@@ -14,7 +14,6 @@ Contributions
     - Calendar delegate and selection handling
     
     Ori
-    - Firebase Firestore integration for habit entries
     - Real-time data persistence with cloud sync
     - Calendar loads from Firebase on every view
     - Fixed calendar layout to show ALL days (1-30/31)
@@ -47,6 +46,11 @@ Contributions
     - Created reusable animation utilities
     - Comprehensive documentation
     
+    Drew
+    - Implemented Firebase/Firestore functionality so all habits/streaks save
+    - expanded firebase to include shop purchases
+    - 
+
 Deviations
     - Enhanced beyond original scope with sophisticated animations and cloud sync
     - Removed unnecessary navigation bars for better space utilization
