@@ -2,9 +2,13 @@
 // Group 15
 // Created / Edits done by Ori Parks (lwp369)
 
+// Eternal-CS329E-Group-Project
+// Group 15
+// Created / Edits done by Ori Parks (lwp369)
+
 import UIKit
 
-final class CheckInViewController: UIViewController {
+final class CheckInViewController: UIViewController, UITextViewDelegate {
 
     private var habit: Habit
     private let store = HabitStore.shared
@@ -53,6 +57,7 @@ final class CheckInViewController: UIViewController {
         tv.backgroundColor = .secondarySystemBackground
         tv.text = "Notes (optional)"
         tv.textColor = .secondaryLabel
+        tv.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
         return tv
     }()
 
@@ -61,6 +66,8 @@ final class CheckInViewController: UIViewController {
         title = habit.name
         view.backgroundColor = UIColor(red: 0.953, green: 0.918, blue: 0.859, alpha: 1)
 
+        notesField.delegate = self
+        
         let buttons = UIStackView(arrangedSubviews: [yesButton, noButton])
         buttons.axis = .horizontal
         buttons.spacing = 16
@@ -76,16 +83,41 @@ final class CheckInViewController: UIViewController {
             stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
             stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
-            notesField.heightAnchor.constraint(equalToConstant: 150)
+            notesField.heightAnchor.constraint(equalToConstant: 150),
+            yesButton.heightAnchor.constraint(equalToConstant: 50),
+            noButton.heightAnchor.constraint(equalToConstant: 50)
         ])
 
         yesButton.addTarget(self, action: #selector(yesTapped), for: .touchUpInside)
         noButton.addTarget(self, action: #selector(noTapped), for: .touchUpInside)
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        view.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+    
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        if textView.textColor == .secondaryLabel {
+            textView.text = ""
+            textView.textColor = .label
+        }
+    }
+    
+    func textViewDidEndEditing(_ textView: UITextView) {
+        if textView.text.isEmpty {
+            textView.text = "Notes (optional)"
+            textView.textColor = .secondaryLabel
+        }
     }
 
     @objc private func yesTapped() {
-        let note = notesField.textColor == .secondaryLabel ? nil : notesField.text
-        // Compute next streak to estimate reward
+        let note = (notesField.textColor == .secondaryLabel || notesField.text == "Notes (optional)" || notesField.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? nil : notesField.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        print("💾 Saving YES check-in with note: '\(note ?? "nil")'")
+        
         if let idx = store.habits.firstIndex(where: { $0.id == habit.id }) {
             let current = store.habits[idx]
             let nextStreak: Int
@@ -106,14 +138,16 @@ final class CheckInViewController: UIViewController {
     }
 
     @objc private func noTapped() {
-        let note = notesField.textColor == .secondaryLabel ? nil : notesField.text
+        let note = (notesField.textColor == .secondaryLabel || notesField.text == "Notes (optional)" || notesField.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? nil : notesField.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        print("💾 Saving NO check-in with note: '\(note ?? "nil")'")
+        
         store.checkIn(habitID: habit.id, didComplete: false, note: note)
         navigationController?.popViewController(animated: true)
         onFinished?()
     }
 
     private func showRewardToast(points: Int) {
-        // Celebrate with emojis for milestone streaks
         if let idx = store.habits.firstIndex(where: { $0.id == habit.id }) {
             let streak = store.habits[idx].currentStreak
             if streak % 7 == 0 && streak > 0 {
@@ -139,7 +173,6 @@ final class CheckInViewController: UIViewController {
             toast.heightAnchor.constraint(equalToConstant: 44)
         ])
 
-        // Use bounce animation
         AnimationUtility.bounceIn(toast, duration: 0.5)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -150,3 +183,4 @@ final class CheckInViewController: UIViewController {
         }
     }
 }
+

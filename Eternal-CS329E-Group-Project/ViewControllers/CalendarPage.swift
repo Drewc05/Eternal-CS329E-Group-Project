@@ -5,6 +5,20 @@
 //  Created by Colin Day on 10/20/25.
 //
 
+//
+//  Calendar.swift
+//  Eternal-CS329E-Group-Project
+//
+//  Created by Colin Day on 10/20/25.
+//
+
+//
+//  Calendar.swift
+//  Eternal-CS329E-Group-Project
+//
+//  Created by Colin Day on 10/20/25.
+//
+
 import SwiftUI
 import UIKit
 
@@ -15,42 +29,47 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
     private var calendarView: UICalendarView!
     private var selectedDateLabel: UILabel!
     private var statsLabel: UILabel!
+    private var habitPickerButton: UIButton!
+    private var selectedHabit: Habit?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = theme.background
         
-        // Hide the navigation bar title to save space
         navigationController?.setNavigationBarHidden(true, animated: false)
         
         setupUI()
+        
+        if let firstHabit = store.habits.first {
+            selectedHabit = firstHabit
+            updateHabitPickerButton()
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        // Keep navigation bar hidden
         navigationController?.setNavigationBarHidden(true, animated: false)
         
-        // Load latest entries from Firebase
         store.loadEntriesFromFirebase { [weak self] in
             DispatchQueue.main.async {
-                // Reload calendar decorations with fresh data
                 self?.calendarView.reloadDecorations(forDateComponents: [], animated: true)
                 print("📅 Calendar reloaded with Firebase data")
+                
+                if self?.selectedHabit == nil, let firstHabit = self?.store.habits.first {
+                    self?.selectedHabit = firstHabit
+                    self?.updateHabitPickerButton()
+                }
             }
         }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
-        // Show navigation bar when leaving (for other screens)
         navigationController?.setNavigationBarHidden(false, animated: false)
     }
     
     private func setupUI() {
-        // Header card with stats - COMPACT
         let headerCard = UIView()
         headerCard.backgroundColor = theme.card
         headerCard.layer.cornerRadius = 16
@@ -60,29 +79,38 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         headerCard.layer.shadowOpacity = 0.06
         headerCard.layer.shadowRadius = 4
         
-        // Add decorative flame icon
+        habitPickerButton = UIButton(type: .system)
+        habitPickerButton.setTitle("Select Habit", for: .normal)
+        habitPickerButton.titleLabel?.font = .rounded(ofSize: 18, weight: .bold)
+        habitPickerButton.setTitleColor(.white, for: .normal)
+        habitPickerButton.backgroundColor = theme.primary
+        habitPickerButton.layer.cornerRadius = 12
+        habitPickerButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
+        habitPickerButton.addTarget(self, action: #selector(showHabitPicker), for: .touchUpInside)
+        
         let flameIcon = UIImageView()
-        flameIcon.image = UIImage(systemName: "flame.fill")
+        flameIcon.image = UIImage(systemName: "calendar")
         flameIcon.tintColor = theme.primary
         flameIcon.contentMode = .scaleAspectFit
         
         selectedDateLabel = UILabel()
-        selectedDateLabel.text = "Track Your Journey 🗓️"
-        selectedDateLabel.font = .rounded(ofSize: 16, weight: .bold)
+        selectedDateLabel.text = "Select a date"
+        selectedDateLabel.font = .rounded(ofSize: 16, weight: .semibold)
         selectedDateLabel.textColor = theme.text
         selectedDateLabel.textAlignment = .center
         selectedDateLabel.numberOfLines = 1
         
         statsLabel = UILabel()
-        statsLabel.text = "Select a date to view your progress"
+        statsLabel.text = "Choose a habit to view calendar"
         statsLabel.font = .systemFont(ofSize: 13, weight: .regular)
         statsLabel.textColor = theme.secondaryText
         statsLabel.textAlignment = .center
-        statsLabel.numberOfLines = 2
+        statsLabel.numberOfLines = 0
+        statsLabel.lineBreakMode = .byWordWrapping
         
-        let statsStack = UIStackView(arrangedSubviews: [flameIcon, selectedDateLabel, statsLabel])
+        let statsStack = UIStackView(arrangedSubviews: [flameIcon, habitPickerButton, selectedDateLabel, statsLabel])
         statsStack.axis = .vertical
-        statsStack.spacing = 4
+        statsStack.spacing = 8
         statsStack.alignment = .center
         
         headerCard.addSubview(statsStack)
@@ -96,7 +124,6 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
             flameIcon.heightAnchor.constraint(equalToConstant: 24)
         ])
         
-        // Calendar view - TALLER to show all days including day 30!
         calendarView = UICalendarView()
         calendarView.calendar = Calendar.current
         calendarView.locale = Locale.autoupdatingCurrent
@@ -110,7 +137,6 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         
         calendarView.translatesAutoresizingMaskIntoConstraints = false
         
-        // Legend - COMPACT
         let legendStack = createLegend()
         
         let mainStack = UIStackView(arrangedSubviews: [headerCard, calendarView, legendStack])
@@ -125,11 +151,48 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
             mainStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             mainStack.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
             
-            // Optimized sizes - no nav bar means more space!
-            headerCard.heightAnchor.constraint(equalToConstant: 85),
-            calendarView.heightAnchor.constraint(equalToConstant: 420),
+            headerCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 140),
+            calendarView.heightAnchor.constraint(equalToConstant: 380),
             legendStack.heightAnchor.constraint(equalToConstant: 55)
         ])
+    }
+    
+    @objc private func showHabitPicker() {
+        let alert = UIAlertController(title: "Select Habit", message: "Choose which habit to view", preferredStyle: .actionSheet)
+        
+        for habit in store.habits where !habit.isExtinguished {
+            let action = UIAlertAction(title: habit.name, style: .default) { [weak self] _ in
+                self?.selectedHabit = habit
+                self?.updateHabitPickerButton()
+                self?.calendarView.reloadDecorations(forDateComponents: [], animated: true)
+                self?.selectedDateLabel.text = "Select a date"
+                self?.statsLabel.text = "Tap a day to see details for \(habit.name)"
+            }
+            alert.addAction(action)
+        }
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        if let popoverController = alert.popoverPresentationController {
+            popoverController.sourceView = habitPickerButton
+            popoverController.sourceRect = habitPickerButton.bounds
+        }
+        
+        present(alert, animated: true)
+    }
+    
+    private func updateHabitPickerButton() {
+        if let habit = selectedHabit {
+            let icon = UIImage(systemName: habit.icon)
+            habitPickerButton.setTitle("  \(habit.name)", for: .normal)
+            habitPickerButton.setImage(icon, for: .normal)
+            habitPickerButton.tintColor = .white
+            statsLabel.text = "Tap a day to see details for \(habit.name)"
+        } else {
+            habitPickerButton.setTitle("Select Habit", for: .normal)
+            habitPickerButton.setImage(nil, for: .normal)
+            statsLabel.text = "Choose a habit to view calendar"
+        }
     }
     
     private func createLegend() -> UIView {
@@ -141,8 +204,8 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         container.layer.shadowOpacity = 0.08
         container.layer.shadowRadius = 4
         
-        let completedDot = createLegendItem(emoji: "🔥", label: "Completed Day")
-        let incompleteDot = createLegendItem(emoji: "💤", label: "Missed Day")
+        let completedDot = createLegendItem(emoji: "🔥", label: "Completed")
+        let incompleteDot = createLegendItem(emoji: "💤", label: "Missed")
         
         let stack = UIStackView(arrangedSubviews: [completedDot, incompleteDot])
         stack.axis = .horizontal
@@ -178,59 +241,93 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         return stack
     }
 
-    // MARK: - UICalendarViewDelegate
-    
     func calendarView(_ calendarView: UICalendarView, decorationFor dateComponents: DateComponents) -> UICalendarView.Decoration? {
-        guard let date = Calendar.current.date(from: dateComponents)?.startOfDay else { return nil }
+        guard let habit = selectedHabit,
+              let date = Calendar.current.date(from: dateComponents)?.startOfDay else {
+            return nil
+        }
         
-        // Check if any habit was completed on this day
         let entriesForDay = store.entriesByDay[date] ?? []
-        let hasCompletedHabit = entriesForDay.contains { $0.didComplete }
-        let hasIncompleteEntry = !entriesForDay.isEmpty && !hasCompletedHabit
+        let habitEntry = entriesForDay.first { $0.habitID == habit.id }
         
-        if hasCompletedHabit {
-            return .default(color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 1), size: .large)
-        } else if hasIncompleteEntry {
-            return .default(color: .systemGray4, size: .medium)
+        if let entry = habitEntry {
+            if entry.didComplete {
+                return .default(color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 1), size: .large)
+            } else {
+                return .default(color: .systemGray4, size: .medium)
+            }
         }
         
         return nil
     }
     
-    // MARK: - UICalendarSelectionSingleDateDelegate
-    
     func dateSelection(_ selection: UICalendarSelectionSingleDate, didSelectDate dateComponents: DateComponents?) {
         guard let dateComponents = dateComponents,
-              let selectedDate = Calendar.current.date(from: dateComponents) else {
+              let selectedDate = Calendar.current.date(from: dateComponents),
+              let habit = selectedHabit else {
             return
         }
         
-        updateStats(for: selectedDate.startOfDay)
+        updateStats(for: selectedDate.startOfDay, habit: habit)
     }
     
-    private func updateStats(for date: Date) {
+    private func updateStats(for date: Date, habit: Habit) {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         selectedDateLabel.text = formatter.string(from: date)
         
+        
+        
         let entriesForDay = store.entriesByDay[date] ?? []
         
-        if entriesForDay.isEmpty {
-            statsLabel.text = "No activity recorded 📭"
-        } else {
-            let completed = entriesForDay.filter { $0.didComplete }.count
-            let total = entriesForDay.count
-            
-            if completed == total {
-                statsLabel.text = "🔥 Perfect day! \(completed) of \(total) habits completed!"
-            } else if completed > 0 {
-                statsLabel.text = "✨ \(completed) of \(total) habits completed"
-            } else {
-                statsLabel.text = "💤 No habits completed"
-            }
+        
+        for (index, e) in entriesForDay.enumerated() {
+        
         }
         
-        // Animate the update with a pulse effect
+        let habitEntry = entriesForDay.first { $0.habitID == habit.id }
+        
+        
+        if let entry = habitEntry {
+            
+            
+            let streakAtDate = calculateStreakAt(date: date, for: habit)
+            
+            var statusText = ""
+            if entry.didComplete {
+                statusText = "🔥 \(habit.name) - Completed!\n"
+                statusText += "Streak: \(streakAtDate) day\(streakAtDate == 1 ? "" : "s")"
+            } else {
+                statusText = "💤 \(habit.name) - Missed\n"
+                statusText += "Streak: \(streakAtDate) day\(streakAtDate == 1 ? "" : "s")"
+            }
+            
+            if let value = entry.value, value > 0 {
+                statusText += "\n\n📊 Value: \(Int(value))"
+            }
+            
+            // Debug the note logic
+            
+            if let note = entry.note {
+                if !note.isEmpty {
+                    statusText += "\n\n📝 Note: \(note)"
+                } else {
+                    print("  Note is empty, showing 'No notes'")
+                    statusText += "\n\n📝 No notes"
+                }
+            } else {
+                print("  Note is nil, showing 'No notes'")
+                statusText += "\n\n📝 No notes"
+            }
+            
+            print("Final statusText: '\(statusText)'")
+            statsLabel.text = statusText
+            
+        } else {
+            statsLabel.text = "📭 No entry for \(habit.name) on this day"
+        }
+        print("=== END DEBUG ===\n")
+        
         UIView.animate(withDuration: 0.15) {
             self.statsLabel.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
             self.statsLabel.alpha = 0.5
@@ -241,5 +338,38 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
             })
         }
     }
+    private func calculateStreakAt(date: Date, for habit: Habit) -> Int {
+        let sortedDates = store.entriesByDay.keys
+            .filter { $0 <= date }
+            .sorted()
+        
+        var streak = 0
+        var lastDate: Date?
+        
+        for checkDate in sortedDates.reversed() {
+            let entries = store.entriesByDay[checkDate] ?? []
+            guard let entry = entries.first(where: { $0.habitID == habit.id }) else {
+                break
+            }
+            
+            if entry.didComplete {
+                if let last = lastDate {
+                    let daysBetween = Calendar.current.dateComponents([.day], from: checkDate, to: last).day ?? 0
+                    if daysBetween == 1 {
+                        streak += 1
+                        lastDate = checkDate
+                    } else {
+                        break
+                    }
+                } else {
+                    streak = 1
+                    lastDate = checkDate
+                }
+            } else {
+                break
+            }
+        }
+        
+        return streak
+    }
 }
-

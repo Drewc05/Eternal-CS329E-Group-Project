@@ -213,7 +213,10 @@ final class HabitStore {
                 
                 let date = timestamp.dateValue().startOfDay
                 let value = data["value"] as? Double
-                let note = data["note"] as? String
+                let noteFromFirebase = data["note"] as? String
+                
+                // Only set note if it's not empty
+                let note = (noteFromFirebase?.isEmpty == false) ? noteFromFirebase : nil
                 
                 let entry = HabitEntry(
                     id: id,
@@ -221,17 +224,19 @@ final class HabitStore {
                     date: date,
                     didComplete: didComplete,
                     value: value == 0 ? nil : value,
-                    note: note?.isEmpty == true ? nil : note
+                    note: note
                 )
+                
+                print("📝 Loaded entry - Date: \(date), Completed: \(didComplete), Note: '\(note ?? "nil")'")
                 
                 self.entriesByDay[date, default: []].append(entry)
             }
             
             print("✅ Loaded \(documents.count) entries from Firebase")
+            print("📊 Total days with entries: \(self.entriesByDay.keys.count)")
             completion()
         }
     }
-
     private func loadWalletFromFirebase(uid: String, completion: @escaping () -> Void) {
         db.collection("users").document(uid).collection("wallet").document("data").getDocument { [weak self] snapshot, error in
             guard let self = self else {
@@ -376,6 +381,13 @@ final class HabitStore {
             return
         }
         
+        print("💾 Attempting to save entry to Firebase:")
+        print("   - Habit ID: \(entry.habitID)")
+        print("   - Date: \(entry.date)")
+        print("   - Completed: \(entry.didComplete)")
+        print("   - Note: '\(entry.note ?? "nil")'")
+        print("   - Value: \(entry.value ?? 0)")
+        
         let entryData: [String: Any] = [
             "id": entry.id.uuidString,
             "habitID": entry.habitID.uuidString,
@@ -386,11 +398,13 @@ final class HabitStore {
             "timestamp": FieldValue.serverTimestamp()
         ]
         
+        print("📤 Sending to Firebase: \(entryData)")
+        
         db.collection("users").document(uid).collection("entries").document(entry.id.uuidString).setData(entryData, merge: true) { error in
             if let error = error {
                 print("❌ Error saving entry: \(error.localizedDescription)")
             } else {
-                print("✅ Entry saved successfully")
+                print("✅ Entry saved successfully to Firebase")
             }
         }
     }

@@ -49,7 +49,10 @@ Contributions
     Drew
     - Implemented Firebase/Firestore functionality so all habits/streaks save
     - expanded firebase to include shop purchases
-    - 
+    - Created the drop down menu in the calendar page where you can select the specific calendar display for your habit
+    - linked each day of the calendar to the specific notes written for the habit that day
+    - expanded firebase to save the notes you write each day
+    - improved the writing notes function so you don't have to backspace all the placeholder text
 
 Deviations
     - Enhanced beyond original scope with sophisticated animations and cloud sync
