@@ -12,27 +12,34 @@ class TabController: UITabBarController {
 
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
+
         let brandRed = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
-        appearance.backgroundColor = brandRed
+        
+        //appearance.backgroundColor = brandRed
 
-        // Unselected state
-        appearance.stackedLayoutAppearance.normal.iconColor = .systemGray5
-        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.systemGray5]
+        let layouts = [
+            appearance.stackedLayoutAppearance,
+            appearance.inlineLayoutAppearance,
+            appearance.compactInlineLayoutAppearance
+        ]
+        
+        for layout in layouts {
+            // Unselected
+            layout.normal.iconColor = .systemGray
+            layout.normal.titleTextAttributes = [.foregroundColor: UIColor.systemGray]
+            
+            // Selected
+            layout.selected.iconColor = brandRed
+            layout.selected.titleTextAttributes = [.foregroundColor: brandRed]
+        }
 
-        // Selected state
-        appearance.stackedLayoutAppearance.selected.iconColor = .white
-        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.white]
-
-        // Apply to all appearances
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
-        tabBar.tintColor = .white
-        tabBar.unselectedItemTintColor = .systemGray5
+        
 
         tabBar.isTranslucent = false
-        tabBar.layer.masksToBounds = false
-        tabBar.layer.cornerRadius = 0
     }
+
     
     //https://www.youtube.com/watch?v=AoQb6Dy6l04
     

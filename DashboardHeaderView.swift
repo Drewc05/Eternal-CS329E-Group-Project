@@ -58,6 +58,7 @@ final class DashboardHeaderView: UICollectionReusableView {
         ])
         
         // Animated flame - positioned on LEFT side
+        card.addSubview(particleEmitter)
         card.addSubview(animatedFlame)
         animatedFlame.translatesAutoresizingMaskIntoConstraints = false
         
@@ -91,7 +92,7 @@ final class DashboardHeaderView: UICollectionReusableView {
         mainStack.spacing = 12
         
         card.addSubview(mainStack)
-        card.addSubview(particleEmitter)
+        
         
         mainStack.translatesAutoresizingMaskIntoConstraints = false
         
@@ -107,7 +108,7 @@ final class DashboardHeaderView: UICollectionReusableView {
             
             // Particle emitter behind flame
             particleEmitter.centerXAnchor.constraint(equalTo: animatedFlame.centerXAnchor),
-            particleEmitter.centerYAnchor.constraint(equalTo: animatedFlame.centerYAnchor),
+            particleEmitter.bottomAnchor.constraint(equalTo: animatedFlame.topAnchor),
             particleEmitter.widthAnchor.constraint(equalToConstant: 65),
             particleEmitter.heightAnchor.constraint(equalToConstant: 85),
             
@@ -167,7 +168,7 @@ final class DashboardHeaderView: UICollectionReusableView {
         animatedFlame.startAnimating()
         
         if overallStreak > 0 {
-            particleEmitter.startEmitting()
+            particleEmitter.startEmitting(streak: overallStreak)
         } else {
             particleEmitter.stopEmitting()
         }

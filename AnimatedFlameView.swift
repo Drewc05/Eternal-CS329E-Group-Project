@@ -150,22 +150,22 @@ final class FlameParticleEmitter: UIView {
     private func setup() {
         backgroundColor = .clear
         
-        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY)
+        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxX)
         emitterLayer.emitterSize = CGSize(width: 20, height: 5)
-        emitterLayer.emitterShape = .line
+        emitterLayer.emitterShape = .rectangle
         emitterLayer.renderMode = .additive
         
         let cell = CAEmitterCell()
         cell.birthRate = 10
-        cell.lifetime = 2.0
-        cell.lifetimeRange = 0.5
-        cell.velocity = 20
+        cell.lifetime = 3.0
+        cell.lifetimeRange = 2
+        cell.velocity = 40
         cell.velocityRange = 10
         cell.emissionLongitude = .pi * 1.5 // Upward
         cell.emissionRange = .pi * 0.3
         cell.spin = 2
-        cell.spinRange = 3
-        cell.scale = 0.05
+        cell.spinRange = 2
+        cell.scale = 0.07
         cell.scaleRange = 0.02
         cell.alphaSpeed = -0.5
         cell.contents = createParticleImage().cgImage
@@ -197,8 +197,10 @@ final class FlameParticleEmitter: UIView {
         cell.contents = createParticleImage().cgImage
     }
     
-    func startEmitting() {
-        emitterLayer.birthRate = 1.0
+    func startEmitting(streak: Int) {
+        let rate = streak
+        let clampedRate = [rate, 4].min()
+        emitterLayer.birthRate = Float(clampedRate!)
     }
     
     func stopEmitting() {

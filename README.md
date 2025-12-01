@@ -81,4 +81,13 @@ Deviations
 
 ---
 
+Final Release
 
+Colin
+- Improved software keyboard functionality on Login/Signup screens
+- Made tab bar more readable by changing colors and code structure
+- Made layouts more consistent. Notably standardized title sizes
+- Improved the calendar screen
+    - Made it scrollable
+    - Removed the legend
+- Made the flame particles on the dashboard flow vertically, and slightly increase in rate for the first couple days of a new streak

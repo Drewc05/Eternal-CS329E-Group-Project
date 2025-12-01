@@ -9,7 +9,7 @@ import UIKit
 import FirebaseCore
 import FirebaseAuth
 
-class Login: UIViewController {
+class Login: UIViewController, UITextFieldDelegate {
 
     @IBOutlet weak var emailField: UITextField!
     @IBOutlet weak var pwField: UITextField!
@@ -23,6 +23,8 @@ class Login: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        emailField.delegate = self
+        pwField.delegate = self
 
         authStateListenerHandle = Auth.auth().addStateDidChangeListener() { ( auth, user ) in
             if user != nil {
@@ -127,5 +129,18 @@ class Login: UIViewController {
         } else {
             visibilityButton.setImage(smallEyeSlashImage, for: UIControl.State.normal)
         }
+    }
+    
+    // Called when 'return' key pressed
+
+    func textFieldShouldReturn(_ textField:UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+    
+    // Called when the user clicks on the view outside of the UITextField
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        self.view.endEditing(true)
     }
 }

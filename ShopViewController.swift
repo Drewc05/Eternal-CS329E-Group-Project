@@ -36,6 +36,13 @@ final class ShopViewController: UIViewController, UICollectionViewDataSource, UI
         view.backgroundColor = theme.background
         title = "Shop"
         ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "Shop"
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 34)
+        titleLabel.textAlignment = .center
+        titleLabel.textColor = .label
+        navigationItem.titleView = titleLabel
 
         // Build a compositional layout for a two-column grid
         let layout = createLayout()

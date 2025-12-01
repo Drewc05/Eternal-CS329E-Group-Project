@@ -26,7 +26,14 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
         super.viewDidLoad()
         view.backgroundColor = theme.background
         title = "Profile"
-        navigationController?.navigationBar.prefersLargeTitles = true
+        //navigationController?.navigationBar.prefersLargeTitles = true
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "Profile"
+        titleLabel.font = UIFont.boldSystemFont(ofSize: 34)
+        titleLabel.textAlignment = .center
+        titleLabel.textColor = .label
+        navigationItem.titleView = titleLabel
 
         tableView.dataSource = self
         tableView.delegate = self
