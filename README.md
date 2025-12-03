@@ -98,4 +98,4 @@ Drew
 - Changed notifications so now on the settings screen if you click the notifications button you can pick what specific time you would like to recieve your daily reminder
 - added a delete account button on the settings screen
 - implemented firebase for all these new features
-- altered calendar screen so it is scrollable and the bottom of the calendar isn't cut off anymore
+
