@@ -2,10 +2,6 @@
 // Group 15
 // Created / Edits done by Ori Parks (lwp369)
 
-// Eternal-CS329E-Group-Project
-// Group 15
-// Created / Edits done by Ori Parks (lwp369)
-
 import Foundation
 
 // MARK: - Habit Model
@@ -71,12 +67,14 @@ struct CurrencyWallet: Codable {
 struct AppSettings: Codable {
     var themeKey: String
     var notificationsEnabled: Bool
-    var notificationTime: Date?
+    var notificationHour: Int
+    var notificationMinute: Int
     
-    init(themeKey: String = "default", notificationsEnabled: Bool = true, notificationTime: Date? = nil) {
+    init(themeKey: String = "default", notificationsEnabled: Bool = false, notificationHour: Int = 20, notificationMinute: Int = 0) {
         self.themeKey = themeKey
         self.notificationsEnabled = notificationsEnabled
-        self.notificationTime = notificationTime
+        self.notificationHour = notificationHour
+        self.notificationMinute = notificationMinute
     }
 }
 

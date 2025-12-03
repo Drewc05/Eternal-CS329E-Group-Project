@@ -17,6 +17,8 @@ final class HabitStore {
         static let walletTotal = "wallet.total"
         static let themeKey = "settings.themeKey"
         static let notifications = "settings.notifications"
+        static let notificationHour = "settings.notificationHour"
+        static let notificationMinute = "settings.notificationMinute"
         static let freezes = "inventory.freezes"
         static let multiplierUntil = "inventory.multiplierUntil"
     }
@@ -39,6 +41,9 @@ final class HabitStore {
         wallet.totalEarned = defaults.integer(forKey: Keys.walletTotal)
         settings.themeKey = defaults.string(forKey: Keys.themeKey) ?? settings.themeKey
         settings.notificationsEnabled = defaults.object(forKey: Keys.notifications) as? Bool ?? settings.notificationsEnabled
+        settings.notificationHour = defaults.integer(forKey: Keys.notificationHour)
+        if settings.notificationHour == 0 { settings.notificationHour = 20 }
+        settings.notificationMinute = defaults.integer(forKey: Keys.notificationMinute)
         streakFreezesOwned = defaults.integer(forKey: Keys.freezes)
         if let ts = defaults.object(forKey: Keys.multiplierUntil) as? TimeInterval {
             activeMultiplierUntil = Date(timeIntervalSince1970: ts)
@@ -61,7 +66,6 @@ final class HabitStore {
             return
         }
         
-        print("📥 Starting Firebase load for user: \(uid)")
         clearUserData()
         
         let group = DispatchGroup()
@@ -93,13 +97,11 @@ final class HabitStore {
         
         group.notify(queue: .main) {
             NotificationCenter.default.post(name: NSNotification.Name("HabitDataLoaded"), object: nil)
-            print("✅ All data loaded from Firebase")
             completion?()
         }
     }
 
     private func loadHabitsFromFirebase(uid: String, completion: @escaping () -> Void) {
-        print("📥 Loading habits for user: \(uid)")
         db.collection("users").document(uid).collection("habits").getDocuments { [weak self] snapshot, error in
             guard let self = self else {
                 completion()
@@ -107,18 +109,14 @@ final class HabitStore {
             }
             
             if let error = error {
-                print("❌ Error loading habits: \(error.localizedDescription)")
                 completion()
                 return
             }
             
             guard let documents = snapshot?.documents else {
-                print("⚠️ No habit documents found")
                 completion()
                 return
             }
-            
-            print("📦 Found \(documents.count) habit documents")
             
             self.habits = documents.compactMap { doc in
                 let data = doc.data()
@@ -129,7 +127,6 @@ final class HabitStore {
                     let name = data["name"] as? String,
                     let icon = data["icon"] as? String
                 else {
-                    print("⚠️ Failed to parse habit document: \(doc.documentID)")
                     return nil
                 }
                 
@@ -143,7 +140,7 @@ final class HabitStore {
                     lastCheckInDate = timestamp.dateValue()
                 }
                 
-                let habit = Habit(
+                return Habit(
                     id: id,
                     name: name,
                     icon: icon,
@@ -154,12 +151,8 @@ final class HabitStore {
                     bestStreak: bestStreak,
                     brightness: brightness
                 )
-                
-                print("✅ Loaded habit: \(habit.name)")
-                return habit
             }
             
-            print("✅ Total habits loaded: \(self.habits.count)")
             completion()
         }
     }
@@ -173,7 +166,6 @@ final class HabitStore {
     }
 
     private func loadEntriesFromFirebase(uid: String, completion: @escaping () -> Void) {
-        print("📥 Loading entries for user: \(uid)")
         db.collection("users").document(uid).collection("entries").order(by: "date", descending: false).getDocuments { [weak self] snapshot, error in
             guard let self = self else {
                 completion()
@@ -181,18 +173,14 @@ final class HabitStore {
             }
             
             if let error = error {
-                print("❌ Error loading entries: \(error.localizedDescription)")
                 completion()
                 return
             }
             
             guard let documents = snapshot?.documents else {
-                print("⚠️ No entry documents found")
                 completion()
                 return
             }
-            
-            print("📦 Found \(documents.count) entry documents")
             
             self.entriesByDay.removeAll()
             
@@ -207,7 +195,6 @@ final class HabitStore {
                     let timestamp = data["date"] as? Timestamp,
                     let didComplete = data["didComplete"] as? Bool
                 else {
-                    print("⚠️ Failed to parse entry document: \(doc.documentID)")
                     continue
                 }
                 
@@ -215,7 +202,6 @@ final class HabitStore {
                 let value = data["value"] as? Double
                 let noteFromFirebase = data["note"] as? String
                 
-                // Only set note if it's not empty
                 let note = (noteFromFirebase?.isEmpty == false) ? noteFromFirebase : nil
                 
                 let entry = HabitEntry(
@@ -227,16 +213,13 @@ final class HabitStore {
                     note: note
                 )
                 
-                print("📝 Loaded entry - Date: \(date), Completed: \(didComplete), Note: '\(note ?? "nil")'")
-                
                 self.entriesByDay[date, default: []].append(entry)
             }
             
-            print("✅ Loaded \(documents.count) entries from Firebase")
-            print("📊 Total days with entries: \(self.entriesByDay.keys.count)")
             completion()
         }
     }
+    
     private func loadWalletFromFirebase(uid: String, completion: @escaping () -> Void) {
         db.collection("users").document(uid).collection("wallet").document("data").getDocument { [weak self] snapshot, error in
             guard let self = self else {
@@ -245,7 +228,6 @@ final class HabitStore {
             }
             
             if let error = error {
-                print("❌ Error loading wallet: \(error.localizedDescription)")
                 completion()
                 return
             }
@@ -257,7 +239,6 @@ final class HabitStore {
                 if let totalEarned = data["totalEarned"] as? Int {
                     self.wallet.totalEarned = totalEarned
                 }
-                print("✅ Wallet loaded from Firebase")
             }
             
             completion()
@@ -272,7 +253,6 @@ final class HabitStore {
             }
             
             if let error = error {
-                print("❌ Error loading settings: \(error.localizedDescription)")
                 completion()
                 return
             }
@@ -284,7 +264,12 @@ final class HabitStore {
                 if let notificationsEnabled = data["notificationsEnabled"] as? Bool {
                     self.settings.notificationsEnabled = notificationsEnabled
                 }
-                print("✅ Settings loaded from Firebase")
+                if let notificationHour = data["notificationHour"] as? Int {
+                    self.settings.notificationHour = notificationHour
+                }
+                if let notificationMinute = data["notificationMinute"] as? Int {
+                    self.settings.notificationMinute = notificationMinute
+                }
             }
             
             completion()
@@ -299,7 +284,6 @@ final class HabitStore {
             }
             
             if let error = error {
-                print("❌ Error loading inventory: \(error.localizedDescription)")
                 completion()
                 return
             }
@@ -309,7 +293,6 @@ final class HabitStore {
                 if let ts = data["multiplierUntil"] as? Timestamp {
                     self.activeMultiplierUntil = ts.dateValue()
                 }
-                print("✅ Inventory loaded from Firebase")
             }
             
             completion()
@@ -323,10 +306,7 @@ final class HabitStore {
     }
 
     private func saveHabitToFirebase(_ habit: Habit) {
-        guard let uid = userId else {
-            print("❌ No user ID for saving habit")
-            return
-        }
+        guard let uid = userId else { return }
         
         let habitData: [String: Any] = [
             "id": habit.id.uuidString,
@@ -340,20 +320,38 @@ final class HabitStore {
             "timestamp": FieldValue.serverTimestamp()
         ]
         
-        print("💾 Saving habit: \(habit.name)")
-        db.collection("users").document(uid).collection("habits").document(habit.id.uuidString).setData(habitData, merge: true) { error in
-            if let error = error {
-                print("❌ Error saving habit: \(error.localizedDescription)")
-            } else {
-                print("✅ Habit saved successfully")
-            }
-        }
+        db.collection("users").document(uid).collection("habits").document(habit.id.uuidString).setData(habitData, merge: true)
     }
 
     func extinguishHabit(id: UUID) {
         guard let idx = habits.firstIndex(where: { $0.id == id }) else { return }
         habits[idx].isExtinguished = true
         saveHabitToFirebase(habits[idx])
+    }
+    
+    func deleteHabit(id: UUID) {
+        guard let uid = userId else { return }
+        
+        guard let idx = habits.firstIndex(where: { $0.id == id }) else { return }
+        habits.remove(at: idx)
+        
+        db.collection("users").document(uid).collection("habits").document(id.uuidString).delete()
+        
+        for (date, entries) in entriesByDay {
+            entriesByDay[date] = entries.filter { $0.habitID != id }
+            if entriesByDay[date]?.isEmpty == true {
+                entriesByDay.removeValue(forKey: date)
+            }
+        }
+        
+        db.collection("users").document(uid).collection("entries").whereField("habitID", isEqualTo: id.uuidString).getDocuments { snapshot, error in
+            guard let documents = snapshot?.documents else { return }
+            let batch = self.db.batch()
+            documents.forEach { doc in
+                batch.deleteDocument(doc.reference)
+            }
+            batch.commit()
+        }
     }
 
     func entry(for habitID: UUID, on day: Date = Date().startOfDay) -> HabitEntry? {
@@ -376,17 +374,7 @@ final class HabitStore {
     }
 
     private func saveEntryToFirebase(_ entry: HabitEntry) {
-        guard let uid = userId else {
-            print("❌ No user ID for saving entry")
-            return
-        }
-        
-        print("💾 Attempting to save entry to Firebase:")
-        print("   - Habit ID: \(entry.habitID)")
-        print("   - Date: \(entry.date)")
-        print("   - Completed: \(entry.didComplete)")
-        print("   - Note: '\(entry.note ?? "nil")'")
-        print("   - Value: \(entry.value ?? 0)")
+        guard let uid = userId else { return }
         
         let entryData: [String: Any] = [
             "id": entry.id.uuidString,
@@ -398,15 +386,7 @@ final class HabitStore {
             "timestamp": FieldValue.serverTimestamp()
         ]
         
-        print("📤 Sending to Firebase: \(entryData)")
-        
-        db.collection("users").document(uid).collection("entries").document(entry.id.uuidString).setData(entryData, merge: true) { error in
-            if let error = error {
-                print("❌ Error saving entry: \(error.localizedDescription)")
-            } else {
-                print("✅ Entry saved successfully to Firebase")
-            }
-        }
+        db.collection("users").document(uid).collection("entries").document(entry.id.uuidString).setData(entryData, merge: true)
     }
 
     func pendingHabitsForToday() -> [Habit] {
@@ -485,6 +465,12 @@ final class HabitStore {
         settings.notificationsEnabled = enabled
         saveSettingsToFirebase()
     }
+    
+    func setNotificationTime(hour: Int, minute: Int) {
+        settings.notificationHour = hour
+        settings.notificationMinute = minute
+        saveSettingsToFirebase()
+    }
 
     @discardableResult
     func spendCoins(_ amount: Int) -> Bool {
@@ -521,12 +507,16 @@ final class HabitStore {
         let settingsData: [String: Any] = [
             "themeKey": settings.themeKey,
             "notificationsEnabled": settings.notificationsEnabled,
+            "notificationHour": settings.notificationHour,
+            "notificationMinute": settings.notificationMinute,
             "timestamp": FieldValue.serverTimestamp()
         ]
         
         db.collection("users").document(uid).collection("settings").document("data").setData(settingsData, merge: true)
         defaults.set(settings.themeKey, forKey: Keys.themeKey)
         defaults.set(settings.notificationsEnabled, forKey: Keys.notifications)
+        defaults.set(settings.notificationHour, forKey: Keys.notificationHour)
+        defaults.set(settings.notificationMinute, forKey: Keys.notificationMinute)
     }
 
     private func saveInventoryToFirebase() {
@@ -565,6 +555,102 @@ final class HabitStore {
             } else if !allHabitsCompleted && Calendar.current.isDateInToday(today) {
                 wagers[index].isWon = false
                 wagers[index].isActive = false
+            }
+        }
+    }
+    
+    func deleteAllUserData(uid: String, completion: @escaping (Bool) -> Void) {
+        let group = DispatchGroup()
+        var hasError = false
+        
+        group.enter()
+        db.collection("users").document(uid).collection("habits").getDocuments { snapshot, error in
+            if let error = error {
+                hasError = true
+                group.leave()
+                return
+            }
+            
+            let deleteBatch = self.db.batch()
+            snapshot?.documents.forEach { doc in
+                deleteBatch.deleteDocument(doc.reference)
+            }
+            
+            deleteBatch.commit { error in
+                if let error = error {
+                    hasError = true
+                }
+                group.leave()
+            }
+        }
+        
+        group.enter()
+        db.collection("users").document(uid).collection("entries").getDocuments { snapshot, error in
+            if let error = error {
+                hasError = true
+                group.leave()
+                return
+            }
+            
+            let deleteBatch = self.db.batch()
+            snapshot?.documents.forEach { doc in
+                deleteBatch.deleteDocument(doc.reference)
+            }
+            
+            deleteBatch.commit { error in
+                if let error = error {
+                    hasError = true
+                }
+                group.leave()
+            }
+        }
+        
+        group.enter()
+        db.collection("users").document(uid).collection("wallet").document("data").delete { error in
+            if let error = error {
+                hasError = true
+            }
+            group.leave()
+        }
+        
+        group.enter()
+        db.collection("users").document(uid).collection("settings").document("data").delete { error in
+            if let error = error {
+                hasError = true
+            }
+            group.leave()
+        }
+        
+        group.enter()
+        db.collection("users").document(uid).collection("inventory").document("data").delete { error in
+            if let error = error {
+                hasError = true
+            }
+            group.leave()
+        }
+        
+        group.enter()
+        db.collection("users").document(uid).delete { error in
+            if let error = error {
+                hasError = true
+            }
+            group.leave()
+        }
+        
+        group.notify(queue: .main) {
+            if hasError {
+                completion(false)
+            } else {
+                self.clearUserData()
+                self.defaults.removeObject(forKey: Keys.walletBalance)
+                self.defaults.removeObject(forKey: Keys.walletTotal)
+                self.defaults.removeObject(forKey: Keys.themeKey)
+                self.defaults.removeObject(forKey: Keys.notifications)
+                self.defaults.removeObject(forKey: Keys.notificationHour)
+                self.defaults.removeObject(forKey: Keys.notificationMinute)
+                self.defaults.removeObject(forKey: Keys.freezes)
+                self.defaults.removeObject(forKey: Keys.multiplierUntil)
+                completion(true)
             }
         }
     }

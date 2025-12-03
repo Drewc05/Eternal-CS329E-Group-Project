@@ -59,7 +59,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     }
     
     @objc private func habitDataLoaded() {
-        print("🔄 Dashboard received data loaded notification")
         collectionView.reloadData()
     }
     
@@ -67,7 +66,6 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         super.viewWillAppear(animated)
         
         if Auth.auth().currentUser != nil {
-            print("🔄 Dashboard viewWillAppear - reloading from Firebase")
             store.loadFromFirebase {
                 self.store.checkWagersForToday()
                 self.collectionView.reloadData()
@@ -145,6 +143,55 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         
         let vc = CheckInViewController(habit: habit)
         navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        let habit = store.habits[indexPath.item]
+        
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ -> UIMenu? in
+            let deleteAction = UIAction(
+                title: "Delete Habit",
+                image: UIImage(systemName: "trash"),
+                attributes: .destructive
+            ) { [weak self] _ in
+                self?.confirmDeleteHabit(at: indexPath)
+            }
+            
+            return UIMenu(title: habit.name, children: [deleteAction])
+        }
+    }
+    
+    private func confirmDeleteHabit(at indexPath: IndexPath) {
+        let habit = store.habits[indexPath.item]
+        
+        let alert = UIAlertController(
+            title: "Delete \(habit.name)?",
+            message: "This will permanently delete this habit and all its check-in history. This action cannot be undone.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            self?.deleteHabit(at: indexPath)
+        }
+        alert.addAction(deleteAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func deleteHabit(at indexPath: IndexPath) {
+        let habit = store.habits[indexPath.item]
+        
+        collectionView.performBatchUpdates({
+            store.deleteHabit(id: habit.id)
+            collectionView.deleteItems(at: [indexPath])
+        }, completion: { _ in
+            self.collectionView.reloadData()
+        })
+        
+        let impact = UINotificationFeedbackGenerator()
+        impact.notificationOccurred(.success)
     }
 
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
