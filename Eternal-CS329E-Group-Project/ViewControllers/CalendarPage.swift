@@ -17,17 +17,20 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
     private var statsLabel: UILabel!
     private var habitPickerButton: UIButton!
     private var selectedHabit: Habit?
+    private var themeObserver: NSObjectProtocol?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = theme.background
+        view.tintColor = theme.primary
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
         self.title = "Calendar"
         
         let titleLabel = UILabel()
         titleLabel.text = "Calendar"
         titleLabel.font = UIFont.boldSystemFont(ofSize: 34)
         titleLabel.textAlignment = .center
-        titleLabel.textColor = .label
+        titleLabel.textColor = theme.text
         navigationItem.titleView = titleLabel
         
         
@@ -42,6 +45,7 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
         //navigationController?.setNavigationBarHidden(true, animated: false)
         
         store.loadEntriesFromFirebase { [weak self] in
@@ -150,6 +154,7 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         calendarView.layer.cornerRadius = 16
         calendarView.delegate = self
         calendarView.selectionBehavior = UICalendarSelectionSingleDate(delegate: self)
+        calendarView.tintColor = theme.primary
         calendarView.translatesAutoresizingMaskIntoConstraints = false
         calendarView.setContentHuggingPriority(.defaultLow, for: .vertical)
         calendarView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
@@ -269,7 +274,7 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         guard let entry = entries.first(where: { $0.habitID == habit.id }) else { return nil }
         
         return entry.didComplete
-        ? .default(color: UIColor.systemGreen, size: .large)
+        ? .default(color: theme.primary, size: .large)
         : .default(color: .systemGray4, size: .medium)
     }
     
@@ -333,3 +338,4 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         return streak
     }
 }
+

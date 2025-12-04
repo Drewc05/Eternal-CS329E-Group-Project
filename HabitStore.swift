@@ -95,6 +95,11 @@ final class HabitStore {
             group.leave()
         }
         
+        group.enter()
+        loadWagersFromFirebase(uid: uid) {
+            group.leave()
+        }
+        
         group.notify(queue: .main) {
             NotificationCenter.default.post(name: NSNotification.Name("HabitDataLoaded"), object: nil)
             completion?()
@@ -389,6 +394,23 @@ final class HabitStore {
         db.collection("users").document(uid).collection("entries").document(entry.id.uuidString).setData(entryData, merge: true)
     }
 
+    /// Save or update today's note for a habit without changing completion status or streaks.
+    /// If an entry exists for the day, its note is updated. Otherwise, a new entry is created with didComplete = false.
+    func saveNote(for habitID: UUID, note: String?, on day: Date = Date()) {
+        let day = day.startOfDay
+        if var dayEntries = entriesByDay[day], let idx = dayEntries.firstIndex(where: { $0.habitID == habitID }) {
+            var entry = dayEntries[idx]
+            entry.note = (note?.isEmpty == true) ? nil : note
+            dayEntries[idx] = entry
+            entriesByDay[day] = dayEntries
+            saveEntryToFirebase(entry)
+        } else {
+            let entry = HabitEntry(habitID: habitID, date: day, didComplete: false, value: nil, note: (note?.isEmpty == true) ? nil : note)
+            entriesByDay[day, default: []].append(entry)
+            saveEntryToFirebase(entry)
+        }
+    }
+
     func pendingHabitsForToday() -> [Habit] {
         let today = Date().startOfDay
         let completedIDs: Set<UUID> = Set(entriesByDay[today]?.filter { $0.didComplete }.map { $0.habitID } ?? [])
@@ -535,28 +557,167 @@ final class HabitStore {
     
     func addWager(_ wager: Wager) {
         wagers.append(wager)
+        saveWagerToFirebase(wager)
+    }
+    
+    func activeWagers() -> [Wager] {
+        return wagers.filter { $0.isActive }
+    }
+    
+    private func saveWagerToFirebase(_ wager: Wager) {
+        guard let uid = userId else { return }
+        
+        let wagerData: [String: Any] = [
+            "id": wager.id.uuidString,
+            "amount": wager.amount,
+            "targetDays": wager.targetDays,
+            "startDate": Timestamp(date: wager.startDate),
+            "endDate": Timestamp(date: wager.endDate),
+            "isActive": wager.isActive,
+            "isWon": wager.isWon as Any,
+            "timestamp": FieldValue.serverTimestamp()
+        ]
+        
+        db.collection("users").document(uid).collection("wagers").document(wager.id.uuidString).setData(wagerData, merge: true)
+    }
+    
+    private func loadWagersFromFirebase(uid: String, completion: @escaping () -> Void) {
+        db.collection("users").document(uid).collection("wagers").order(by: "startDate", descending: true).getDocuments { [weak self] snapshot, error in
+            guard let self = self else {
+                completion()
+                return
+            }
+            
+            if let error = error {
+                print("Error loading wagers: \(error.localizedDescription)")
+                completion()
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                completion()
+                return
+            }
+            
+            self.wagers = documents.compactMap { doc in
+                let data = doc.data()
+                
+                guard
+                    let idString = data["id"] as? String,
+                    let id = UUID(uuidString: idString),
+                    let amount = data["amount"] as? Int,
+                    let targetDays = data["targetDays"] as? Int,
+                    let startTimestamp = data["startDate"] as? Timestamp,
+                    let endTimestamp = data["endDate"] as? Timestamp,
+                    let isActive = data["isActive"] as? Bool
+                else {
+                    return nil
+                }
+                
+                let isWon = data["isWon"] as? Bool
+                
+                return Wager(
+                    id: id,
+                    amount: amount,
+                    targetDays: targetDays,
+                    startDate: startTimestamp.dateValue(),
+                    isActive: isActive,
+                    isWon: isWon
+                )
+            }
+            
+            completion()
+        }
     }
     
     func checkWagersForToday() {
         let today = Date().startOfDay
         let entriesForToday = entriesByDay[today] ?? []
-        let allHabitsCompleted = !habits.isEmpty && entriesForToday.filter { $0.didComplete }.count == habits.count
+        
+        // Check if all habits were completed today
+        let allHabitsCompletedToday = !habits.filter({ !$0.isExtinguished }).isEmpty && 
+            entriesForToday.filter { $0.didComplete }.count == habits.filter({ !$0.isExtinguished }).count
+        
+        var wagersUpdated = false
         
         for (index, wager) in wagers.enumerated() where wager.isActive {
+            // If wager period has ended
             if today > wager.endDate {
-                if allHabitsCompleted {
-                    wagers[index].isWon = true
-                    wagers[index].isActive = false
+                // Check if user completed ALL days in the wager period
+                let wagerWon = checkWagerCompletion(wager: wager)
+                
+                wagers[index].isWon = wagerWon
+                wagers[index].isActive = false
+                
+                if wagerWon {
+                    // User wins! Double the wager amount
                     addCoins(wager.amount * 2)
+                    
+                    // Show celebration
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("WagerWon"),
+                        object: nil,
+                        userInfo: ["amount": wager.amount * 2]
+                    )
                 } else {
+                    // User loses - already spent the coins when placing wager
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("WagerLost"),
+                        object: nil,
+                        userInfo: ["amount": wager.amount]
+                    )
+                }
+                
+                saveWagerToFirebase(wagers[index])
+                wagersUpdated = true
+            }
+            // If user missed today's habits while wager is active
+            else if !allHabitsCompletedToday && today >= wager.startDate && today <= wager.endDate {
+                // Check if it's end of day (after 11:59 PM) - for now we'll check immediately
+                // In production, you might want to wait until end of day
+                let calendar = Calendar.current
+                if calendar.component(.hour, from: Date()) >= 23 {
                     wagers[index].isWon = false
                     wagers[index].isActive = false
+                    
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("WagerLost"),
+                        object: nil,
+                        userInfo: ["amount": wager.amount]
+                    )
+                    
+                    saveWagerToFirebase(wagers[index])
+                    wagersUpdated = true
                 }
-            } else if !allHabitsCompleted && Calendar.current.isDateInToday(today) {
-                wagers[index].isWon = false
-                wagers[index].isActive = false
             }
         }
+        
+        if wagersUpdated {
+            NotificationCenter.default.post(name: NSNotification.Name("WagersUpdated"), object: nil)
+        }
+    }
+    
+    private func checkWagerCompletion(wager: Wager) -> Bool {
+        var currentDate = wager.startDate
+        let endDate = wager.endDate
+        let activeHabits = habits.filter { !$0.isExtinguished }
+        
+        guard !activeHabits.isEmpty else { return false }
+        
+        // Check every day in the wager period
+        while currentDate <= endDate {
+            let entries = entriesByDay[currentDate] ?? []
+            let completedCount = entries.filter { $0.didComplete }.count
+            
+            // If any day has missing completions, wager is lost
+            if completedCount < activeHabits.count {
+                return false
+            }
+            
+            currentDate = Calendar.current.date(byAdding: .day, value: 1, to: currentDate) ?? endDate.addingTimeInterval(86400)
+        }
+        
+        return true
     }
     
     func deleteAllUserData(uid: String, completion: @escaping (Bool) -> Void) {
@@ -627,6 +788,27 @@ final class HabitStore {
                 hasError = true
             }
             group.leave()
+        }
+        
+        group.enter()
+        db.collection("users").document(uid).collection("wagers").getDocuments { snapshot, error in
+            if let error = error {
+                hasError = true
+                group.leave()
+                return
+            }
+            
+            let deleteBatch = self.db.batch()
+            snapshot?.documents.forEach { doc in
+                deleteBatch.deleteDocument(doc.reference)
+            }
+            
+            deleteBatch.commit { error in
+                if let error = error {
+                    hasError = true
+                }
+                group.leave()
+            }
         }
         
         group.enter()

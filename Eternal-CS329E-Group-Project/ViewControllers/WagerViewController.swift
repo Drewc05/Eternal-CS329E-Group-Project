@@ -42,7 +42,7 @@ final class WagerViewController: UIViewController {
         ])
         
         // Balance display
-        balanceLabel.text = "Current Balance: $\(store.wallet.balance)"
+        balanceLabel.text = "Current Coins: \(store.wallet.balance)"
         balanceLabel.font = .boldSystemFont(ofSize: 24)
         balanceLabel.textColor = theme.primary
         balanceLabel.textAlignment = .center
@@ -123,14 +123,14 @@ final class WagerViewController: UIViewController {
         }
         
         guard amount <= store.wallet.balance else {
-            showAlert(title: "Insufficient Funds", message: "You don't have enough coins to place this wager.")
+            showAlert(title: "Not Enough Coins", message: "You don't have enough coins to place this wager.")
             return
         }
         
         // Confirm wager
         let alert = UIAlertController(
             title: "Confirm Wager",
-            message: "Wager $\(amount) over \(days) days?\n\nYou must complete all your habits every day. If you succeed, you'll earn $\(amount * 2). If you fail, you lose your wager.",
+            message: "Wager \(amount) coins over \(days) days?\n\nYou must complete all your habits every day. If you succeed, you'll earn \(amount * 2) coins. If you fail, you lose your wager.",
             preferredStyle: .alert
         )
         
@@ -173,10 +173,12 @@ final class WagerViewController: UIViewController {
         successCard.layer.shadowRadius = 20
         
         let successLabel = UILabel()
-        successLabel.text = "Wager Placed! 🔥"
+        successLabel.text = "Wager Placed!"
         successLabel.font = .boldSystemFont(ofSize: 32)
         successLabel.textColor = theme.primary
         successLabel.textAlignment = .center
+        successLabel.adjustsFontSizeToFitWidth = true
+        successLabel.minimumScaleFactor = 0.8
         
         let subLabel = UILabel()
         subLabel.text = "Good luck!"
@@ -239,3 +241,4 @@ final class WagerViewController: UIViewController {
         present(alert, animated: true)
     }
 }
+

@@ -5,6 +5,9 @@
 import UIKit
 
 final class DashboardHeaderView: UICollectionReusableView {
+    private let store = HabitStore.shared
+    private var theme: Theme { ThemeManager.current(from: store.settings.themeKey) }
+
     static let reuseID = "DashboardHeaderView"
     
     var onCheckInTapped: (() -> Void)?
@@ -16,6 +19,7 @@ final class DashboardHeaderView: UICollectionReusableView {
     private let streakTitleLabel = UILabel()
     private let checkInButton = UIButton(type: .system)
     private let gradientLayer = CAGradientLayer()
+    private let cardGradientLayer = CAGradientLayer()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -32,12 +36,22 @@ final class DashboardHeaderView: UICollectionReusableView {
         
         // Card with gradient background
         card.backgroundColor = UIColor(white: 1.0, alpha: 0.95)
+        
+        cardGradientLayer.colors = theme.cardGradientColors
+        cardGradientLayer.locations = [0.0, 1.0]
+        cardGradientLayer.cornerRadius = 20
+        card.layer.insertSublayer(cardGradientLayer, at: 1)
+        
         card.layer.cornerRadius = 20
         card.layer.masksToBounds = false
         card.layer.shadowColor = UIColor.black.cgColor
         card.layer.shadowOpacity = 0.12
         card.layer.shadowOffset = CGSize(width: 0, height: 4)
         card.layer.shadowRadius = 10
+        
+        card.layer.shadowColor = theme.warmShadowColor.cgColor
+        card.layer.shadowOpacity = theme.isAmber ? 0.18 : 0.12
+        card.layer.shadowRadius = theme.isAmber ? 12 : 10
         
         // Add subtle gradient to card
         gradientLayer.colors = [
@@ -68,20 +82,25 @@ final class DashboardHeaderView: UICollectionReusableView {
         
         // Streak number with "days" label
         streakLabel.font = UIFont.rounded(ofSize: 28, weight: .bold)
-        streakLabel.textColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        streakLabel.textColor = theme.primary
         streakLabel.textAlignment = .left
         streakLabel.text = "0 🔥"
         
         // Check-in button - COMPACT
         checkInButton.setTitle("Check-In", for: .normal)
         checkInButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
-        checkInButton.backgroundColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        checkInButton.backgroundColor = theme.primary
         checkInButton.setTitleColor(.white, for: .normal)
         checkInButton.layer.cornerRadius = 12
-        checkInButton.layer.shadowColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 0.3).cgColor
+        checkInButton.layer.shadowColor = theme.primary.withAlphaComponent(0.3).cgColor
         checkInButton.layer.shadowOffset = CGSize(width: 0, height: 2)
         checkInButton.layer.shadowOpacity = 0.4
         checkInButton.layer.shadowRadius = 4
+        if theme.isAmber {
+            checkInButton.layer.shadowColor = theme.primary.withAlphaComponent(0.45).cgColor
+            checkInButton.layer.shadowRadius = 10
+            checkInButton.layer.shadowOpacity = 0.6
+        }
         checkInButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 16, bottom: 10, right: 16)
         checkInButton.addTarget(self, action: #selector(checkInTapped), for: .touchUpInside)
         
@@ -120,6 +139,7 @@ final class DashboardHeaderView: UICollectionReusableView {
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = card.bounds
+        cardGradientLayer.frame = card.bounds
     }
     
     @objc private func checkInTapped() {
@@ -184,8 +204,8 @@ final class DashboardHeaderView: UICollectionReusableView {
             animatedFlame.flameColor = UIColor(red: 0.9, green: 0.25, blue: 0.05, alpha: 1)
             particleEmitter.flameColor = UIColor(red: 0.9, green: 0.25, blue: 0.05, alpha: 1)
         } else {
-            animatedFlame.flameColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
-            particleEmitter.flameColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+            animatedFlame.flameColor = theme.primary
+            particleEmitter.flameColor = theme.primary
         }
     }
     
@@ -195,3 +215,4 @@ final class DashboardHeaderView: UICollectionReusableView {
         particleEmitter.stopEmitting()
     }
 }
+

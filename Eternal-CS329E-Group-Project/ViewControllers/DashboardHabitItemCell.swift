@@ -1,13 +1,17 @@
 import UIKit
 
 final class DashboardHabitItemCell: UICollectionViewCell {
+    private let store = HabitStore.shared
+    private var theme: Theme { ThemeManager.current(from: store.settings.themeKey) }
+    
     static let reuseID = "DashboardHabitItemCell"
-
+    
     private let card = UIView()
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let streakLabel = UILabel()
     private let miniFlameView = UIImageView()
+    private let cardGradientLayer = CAGradientLayer()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -30,9 +34,17 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         card.layer.shadowOffset = CGSize(width: 0, height: 2)
         card.layer.shadowOpacity = 0.1
         card.layer.shadowRadius = 6
+        
+        cardGradientLayer.colors = theme.cardGradientColors
+        cardGradientLayer.locations = [0, 1]
+        cardGradientLayer.cornerRadius = 18
+        card.layer.insertSublayer(cardGradientLayer, at: 0)
+        
+        // Warmer shadow in Amber
+        card.layer.shadowColor = theme.warmShadowColor.cgColor
 
         iconView.contentMode = .scaleAspectFit
-        iconView.tintColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        iconView.tintColor = theme.primary
 
         // Enhanced with rounded font
         titleLabel.font = .rounded(ofSize: 15, weight: .semibold)
@@ -49,7 +61,7 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         // Mini flame indicator for streak
         miniFlameView.image = UIImage(systemName: "flame.fill")
         miniFlameView.contentMode = .scaleAspectFit
-        miniFlameView.tintColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        miniFlameView.tintColor = theme.primary
 
         contentView.addSubview(card)
         card.translatesAutoresizingMaskIntoConstraints = false
@@ -99,6 +111,8 @@ final class DashboardHabitItemCell: UICollectionViewCell {
             gradientBorder.endPoint = CGPoint(x: 1, y: 1)
             gradientBorder.cornerRadius = 18
         }
+        
+        cardGradientLayer.frame = card.bounds
     }
 
     func configure(with habit: Habit) {
@@ -106,6 +120,26 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         streakLabel.text = "\(habit.currentStreak)"
         let base = UIImage(systemName: habit.icon) ?? UIImage(systemName: "flame.fill")
         iconView.image = base?.withRenderingMode(.alwaysTemplate)
+        
+        // Determine flame color based on streak milestones
+        let flameColor: UIColor
+        if habit.currentStreak >= 30 {
+            // 30+ days: Gold flame (hottest)
+            flameColor = UIColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1)
+        } else if habit.currentStreak >= 14 {
+            // 14-29 days: Bright Orange
+            flameColor = UIColor(red: 0.95, green: 0.35, blue: 0.1, alpha: 1)
+        } else if habit.currentStreak >= 7 {
+            // 7-13 days: Orange
+            flameColor = UIColor(red: 0.9, green: 0.25, blue: 0.05, alpha: 1)
+        } else {
+            // 0-6 days: Use theme primary (lets Amber show)
+            flameColor = theme.primary
+        }
+        
+        // Apply flame color to both icon and mini flame
+        iconView.tintColor = flameColor
+        miniFlameView.tintColor = flameColor
         
         // Animate icon based on brightness/streak
         let alpha = CGFloat(max(0.4, min(1.0, habit.brightness)))
@@ -119,7 +153,7 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         // Highlight card if streak is active
         if habit.currentStreak > 0 {
             card.layer.borderWidth = 2
-            card.layer.borderColor = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 0.3).cgColor
+            card.layer.borderColor = flameColor.withAlphaComponent(0.3).cgColor
             miniFlameView.alpha = 1.0
             
             // Pulse animation for active streaks
@@ -130,6 +164,12 @@ final class DashboardHabitItemCell: UICollectionViewCell {
             pulse.autoreverses = true
             pulse.repeatCount = .infinity
             miniFlameView.layer.add(pulse, forKey: "pulse")
+            
+            if theme.isAmber {
+                self.card.layer.shadowColor = theme.primary.withAlphaComponent(0.35).cgColor
+                self.card.layer.shadowRadius = 10
+                self.card.layer.shadowOpacity = 0.6
+            }
         } else {
             card.layer.borderWidth = 0
             miniFlameView.alpha = 0.3
@@ -143,3 +183,4 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         card.layer.borderWidth = 0
     }
 }
+

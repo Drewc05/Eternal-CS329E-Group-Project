@@ -1,8 +1,35 @@
 #  README
 
-Beta Release
+Final Release:
 
 Contributions
+
+Colin
+- Improved software keyboard functionality on Login/Signup screens
+- Made tab bar more readable by changing colors and code structure
+- Made layouts more consistent. Notably standardized title sizes
+- Improved the calendar screen
+    - Made it scrollable
+    - Removed the legend
+- Made the flame particles on the dashboard flow vertically, and slightly increase in rate for the first couple days of a new streak
+
+Drew
+- Added a delete habit option, press hold on a habit on the dashboard and an option to delete will appear
+- Added a change password button in the settings that functions similar to the forgot password button in the login page
+- Changed notifications so now on the settings screen if you click the notifications button you can pick what specific time you would like to recieve your daily reminder
+- added a delete account button on the settings screen
+- implemented firebase for all these new features
+
+Ori
+- Gradients for habit icon cards
+- Amber Theme and Dark Mode implementation completed
+- Shop reworked:
+    - Wager Feature is the main focus now!
+    - Streak Freeze UI enhanced and fully functional
+- Testing UI features of Wager Feature: Different Colored Flame Icons for a completed/won wager (stretch)
+
+
+Beta Release
 
     Colin
     - Login and Sign Up Screens + Functionality
@@ -80,22 +107,3 @@ Deviations
 ```
 
 ---
-
-Final Release
-
-Colin
-- Improved software keyboard functionality on Login/Signup screens
-- Made tab bar more readable by changing colors and code structure
-- Made layouts more consistent. Notably standardized title sizes
-- Improved the calendar screen
-    - Made it scrollable
-    - Removed the legend
-- Made the flame particles on the dashboard flow vertically, and slightly increase in rate for the first couple days of a new streak
-
-Drew
-- Added a delete habit option, press hold on a habit on the dashboard and an option to delete will appear
-- Added a change password button in the settings that functions similar to the forgot password button in the login page
-- Changed notifications so now on the settings screen if you click the notifications button you can pick what specific time you would like to recieve your daily reminder
-- added a delete account button on the settings screen
-- implemented firebase for all these new features
-

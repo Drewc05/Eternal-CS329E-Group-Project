@@ -6,6 +6,9 @@ import UIKit
 
 // ShopItemCell - Enhanced with modern typography and styling
 final class ShopItemCell: UICollectionViewCell {
+    private let store = HabitStore.shared
+    private var theme: Theme { ThemeManager.current(from: store.settings.themeKey) }
+    
     static let reuseID = "ShopItemCell"
 
     private let card = UIView()
@@ -13,6 +16,7 @@ final class ShopItemCell: UICollectionViewCell {
     private let titleLabel = UILabel()
     private let priceLabel = UILabel()
     private let coinIcon = UILabel()
+    private let cardGradientLayer = CAGradientLayer()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -31,7 +35,6 @@ final class ShopItemCell: UICollectionViewCell {
         // Enhanced card with shadow
         card.layer.cornerRadius = 16
         card.layer.masksToBounds = false
-        card.layer.shadowColor = UIColor.black.cgColor
         card.layer.shadowOffset = CGSize(width: 0, height: 2)
         card.layer.shadowOpacity = 0.08
         card.layer.shadowRadius = 8
@@ -44,6 +47,14 @@ final class ShopItemCell: UICollectionViewCell {
             card.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
             card.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4)
         ])
+
+        cardGradientLayer.colors = theme.cardGradientColors
+        cardGradientLayer.locations = [0, 1]
+        cardGradientLayer.cornerRadius = 16
+        card.layer.insertSublayer(cardGradientLayer, at: 0)
+
+        // Warmer shadow for Amber
+        card.layer.shadowColor = theme.warmShadowColor.cgColor
 
         // Icon with better sizing
         imageView.contentMode = .scaleAspectFit
@@ -88,8 +99,14 @@ final class ShopItemCell: UICollectionViewCell {
         imageView.widthAnchor.constraint(equalToConstant: 48).isActive = true
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        cardGradientLayer.frame = card.bounds
+    }
+
     func configure(title: String, price: Int, imageName: String, theme: Theme, tintColor: UIColor? = nil) {
         card.backgroundColor = theme.card
+        coinIcon.textColor = theme.primary
         titleLabel.textColor = theme.text
         priceLabel.textColor = theme.primary
 
@@ -110,5 +127,14 @@ final class ShopItemCell: UICollectionViewCell {
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: [], animations: {
             self.transform = .identity
         })
+        
+        if theme.isAmber {
+            imageView.layer.shadowColor = theme.primary.withAlphaComponent(0.45).cgColor
+            imageView.layer.shadowRadius = 8
+            imageView.layer.shadowOpacity = 0.6
+            imageView.layer.shadowOffset = .zero
+        } else {
+            imageView.layer.shadowOpacity = 0
+        }
     }
 }

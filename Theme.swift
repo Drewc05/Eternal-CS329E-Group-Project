@@ -21,13 +21,37 @@ struct Theme {
         secondaryText: UIColor { trait in trait.userInterfaceStyle == .dark ? .lightGray : .secondaryLabel }
     )
 
-    static let ember = Theme(
-        name: "ember",
-        background: UIColor { trait in trait.userInterfaceStyle == .dark ? UIColor.black : UIColor(red: 0.97, green: 0.93, blue: 0.88, alpha: 1) },
-        card: UIColor { trait in trait.userInterfaceStyle == .dark ? UIColor(white: 0.12, alpha: 1) : UIColor(white: 1.0, alpha: 0.96) },
-        primary: UIColor { _ in UIColor(red: 0.9, green: 0.25, blue: 0.0, alpha: 1) },
-        text: UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .label },
-        secondaryText: UIColor { trait in trait.userInterfaceStyle == .dark ? .lightGray : .secondaryLabel }
+    static let amber = Theme(
+        name: "amber",
+        background: UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(red: 0.06, green: 0.06, blue: 0.06, alpha: 1) // deep warm black
+            } else {
+                return UIColor(red: 0.99, green: 0.96, blue: 0.90, alpha: 1) // warm parchment
+            }
+        },
+        card: UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(red: 0.12, green: 0.10, blue: 0.08, alpha: 1) // warm charcoal card
+            } else {
+                return UIColor(red: 1.0, green: 0.985, blue: 0.96, alpha: 0.98) // soft cream card
+            }
+        },
+        primary: UIColor { _ in UIColor(red: 1.0, green: 0.62, blue: 0.0, alpha: 1) }, // vivid amber
+        text: UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(white: 0.95, alpha: 1) // near-white for contrast
+            } else {
+                return UIColor(red: 0.20, green: 0.15, blue: 0.10, alpha: 1) // warm ink
+            }
+        },
+        secondaryText: UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return UIColor(white: 0.75, alpha: 1)
+            } else {
+                return UIColor(red: 0.45, green: 0.37, blue: 0.30, alpha: 1)
+            }
+        }
     )
 
     static let dark = Theme(
@@ -43,20 +67,67 @@ struct Theme {
 enum ThemeManager {
     static func current(from key: String) -> Theme {
         switch key.lowercased() {
-        case "ember": return .ember
+        case "amber": return .amber
         case "dark": return .dark
         default: return .default
         }
     }
 
+    // Centralizes navigation bar styling to fix dark mode header colors across screens.
     static func styleNavBar(_ navBar: UINavigationBar?, theme: Theme) {
         navBar?.tintColor = theme.primary
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = theme.background
-        appearance.titleTextAttributes = [.foregroundColor: theme.text]
-        appearance.largeTitleTextAttributes = [.foregroundColor: theme.text]
+        appearance.shadowColor = theme.card.withAlphaComponent(0.3)
+        appearance.titleTextAttributes = [
+            .foregroundColor: theme.text,
+            .font: UIFont.boldSystemFont(ofSize: 17)
+        ]
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: theme.text,
+            .font: UIFont.boldSystemFont(ofSize: 34)
+        ]
         navBar?.standardAppearance = appearance
         navBar?.scrollEdgeAppearance = appearance
+        navBar?.compactAppearance = appearance
+        navBar?.tintColor = theme.primary
+    }
+}
+
+extension Theme {
+    var isAmber: Bool { name.lowercased() == "amber" }
+    
+    /// Gradient colors used for amber card backgrounds
+    var amberGradient: [CGColor] {
+        return [
+            UIColor(red: 1.00, green: 0.84, blue: 0.60, alpha: 0.35).cgColor,
+            UIColor(red: 1.00, green: 0.95, blue: 0.85, alpha: 0.0).cgColor
+        ]
+    }
+    
+    /// Theme-wide card gradient to apply on cards for all themes
+    var cardGradientColors: [CGColor] {
+        switch name.lowercased() {
+        case "amber":
+            return amberGradient
+        case "dark":
+            // Subtle lightening for dark cards
+            return [
+                UIColor.white.withAlphaComponent(0.06).cgColor,
+                UIColor.clear.cgColor
+            ]
+        default:
+            // Default theme: gentle highlight using primary tint
+            return [
+                primary.withAlphaComponent(0.15).cgColor,
+                UIColor.white.withAlphaComponent(0.0).cgColor
+            ]
+        }
+    }
+    
+    /// Warmer, softer shadow color for amber; otherwise a subtle black
+    var warmShadowColor: UIColor {
+        return isAmber ? primary.withAlphaComponent(0.25) : UIColor.black.withAlphaComponent(0.12)
     }
 }

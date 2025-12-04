@@ -27,13 +27,14 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = theme.background
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
         title = "Profile"
         
         let titleLabel = UILabel()
         titleLabel.text = "Profile"
         titleLabel.font = UIFont.boldSystemFont(ofSize: 34)
         titleLabel.textAlignment = .center
-        titleLabel.textColor = .label
+        titleLabel.textColor = theme.text
         navigationItem.titleView = titleLabel
 
         tableView.dataSource = self
@@ -113,11 +114,22 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
                 self.store.setThemeKey("default")
                 self.view.backgroundColor = self.theme.background
                 self.tableView.reloadData()
+                ThemeManager.styleNavBar(self.navigationController?.navigationBar, theme: self.theme)
+                self.navigationController?.navigationBar.tintColor = self.theme.primary
             }))
             alert.addAction(UIAlertAction(title: "Dark", style: .default, handler: { _ in
                 self.store.setThemeKey("dark")
                 self.view.backgroundColor = self.theme.background
                 self.tableView.reloadData()
+                ThemeManager.styleNavBar(self.navigationController?.navigationBar, theme: self.theme)
+                self.navigationController?.navigationBar.tintColor = self.theme.primary
+            }))
+            alert.addAction(UIAlertAction(title: "Amber", style: .default, handler: { _ in
+                self.store.setThemeKey("amber")
+                self.view.backgroundColor = self.theme.background
+                self.tableView.reloadData()
+                ThemeManager.styleNavBar(self.navigationController?.navigationBar, theme: self.theme)
+                self.navigationController?.navigationBar.tintColor = self.theme.primary
             }))
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
             present(alert, animated: true)
@@ -313,3 +325,4 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
         }
     }
 }
+

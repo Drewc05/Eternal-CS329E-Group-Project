@@ -21,6 +21,7 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = theme.background
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
         self.title = "Home"
         
         navigationController?.navigationBar.tintColor = theme.primary
@@ -29,7 +30,7 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         titleLabel.text = "Home"
         titleLabel.font = UIFont.boldSystemFont(ofSize: 34)
         titleLabel.textAlignment = .center
-        titleLabel.textColor = .label
+        titleLabel.textColor = theme.text
         navigationItem.titleView = titleLabel
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addHabitTapped))
@@ -52,6 +53,8 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         ])
         
         NotificationCenter.default.addObserver(self, selector: #selector(habitDataLoaded), name: NSNotification.Name("HabitDataLoaded"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(wagerWon(_:)), name: NSNotification.Name("WagerWon"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(wagerLost(_:)), name: NSNotification.Name("WagerLost"), object: nil)
     }
     
     deinit {
@@ -64,6 +67,7 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
         
         if Auth.auth().currentUser != nil {
             store.loadFromFirebase {
@@ -228,6 +232,34 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         }
         navigationController?.pushViewController(vc, animated: true)
     }
+    
+    @objc private func wagerWon(_ notification: Notification) {
+        guard let amount = notification.userInfo?["amount"] as? Int else { return }
+        
+        let alert = UIAlertController(
+            title: "🎉 WAGER WON! 🎉",
+            message: "Congratulations! You completed all your habits and won \(amount) coins!",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Awesome!", style: .default) { [weak self] _ in
+            self?.collectionView.reloadData()
+        })
+        present(alert, animated: true)
+    }
+    
+    @objc private func wagerLost(_ notification: Notification) {
+        guard let amount = notification.userInfo?["amount"] as? Int else { return }
+        
+        let alert = UIAlertController(
+            title: "Wager Lost",
+            message: "You didn't complete all habits. Better luck next time! Lost: \(amount) coins",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            self?.collectionView.reloadData()
+        })
+        present(alert, animated: true)
+    }
 }
 
 class DashboardCollectionView: UICollectionView {
@@ -236,3 +268,4 @@ class DashboardCollectionView: UICollectionView {
         
     }
 }
+

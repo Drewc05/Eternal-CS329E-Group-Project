@@ -5,38 +5,44 @@
 import SwiftUI
 
 class TabController: UITabBarController {
+    
+    private let store = HabitStore.shared
+    private var theme: Theme { ThemeManager.current(from: store.settings.themeKey) }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         self.SetUpTabs()
 
+        applyTheme(theme)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        applyTheme(theme)
+    }
+    
+    func applyTheme(_ theme: Theme) {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-
-        let brandRed = UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
-        
-        //appearance.backgroundColor = brandRed
+        appearance.backgroundColor = theme.card
 
         let layouts = [
             appearance.stackedLayoutAppearance,
             appearance.inlineLayoutAppearance,
             appearance.compactInlineLayoutAppearance
         ]
-        
+
         for layout in layouts {
             // Unselected
             layout.normal.iconColor = .systemGray
             layout.normal.titleTextAttributes = [.foregroundColor: UIColor.systemGray]
-            
             // Selected
-            layout.selected.iconColor = brandRed
-            layout.selected.titleTextAttributes = [.foregroundColor: brandRed]
+            layout.selected.iconColor = theme.primary
+            layout.selected.titleTextAttributes = [.foregroundColor: theme.primary]
         }
 
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
-        
-
         tabBar.isTranslucent = false
     }
 
