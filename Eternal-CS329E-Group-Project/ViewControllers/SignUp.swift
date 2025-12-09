@@ -28,6 +28,39 @@ class SignUp: UIViewController, UITextFieldDelegate {
         pwField.delegate = self
         confirmPWField.delegate = self
 
+        // Disable AutoFill/Strong Password on sign-up password fields
+        if #available(iOS 12.0, *) {
+            // Using oneTimeCode prevents Automatic Strong Password overlay
+            pwField.textContentType = .oneTimeCode
+            confirmPWField.textContentType = .oneTimeCode
+        }
+
+        pwField.autocorrectionType = .no
+        confirmPWField.autocorrectionType = .no
+
+        pwField.spellCheckingType = .no
+        confirmPWField.spellCheckingType = .no
+
+        pwField.smartDashesType = .no
+        confirmPWField.smartDashesType = .no
+
+        pwField.smartQuotesType = .no
+        confirmPWField.smartQuotesType = .no
+
+        pwField.smartInsertDeleteType = .no
+        confirmPWField.smartInsertDeleteType = .no
+
+        pwField.autocapitalizationType = .none
+        confirmPWField.autocapitalizationType = .none
+
+        // Keep ASCII keyboard to avoid predictive passwords
+        pwField.keyboardType = .asciiCapable
+        confirmPWField.keyboardType = .asciiCapable
+
+        // Ensure secure entry remains respected (visibility toggle still works)
+        pwField.isSecureTextEntry = true
+        confirmPWField.isSecureTextEntry = true
+
         authStateListenerHandle = Auth.auth().addStateDidChangeListener() { ( auth, user ) in
             if user != nil {
                 HabitStore.shared.clearUserData()
@@ -135,3 +168,4 @@ class SignUp: UIViewController, UITextFieldDelegate {
         self.view.endEditing(true)
     }
 }
+

@@ -16,8 +16,9 @@ struct Habit: Identifiable, Hashable, Codable {
     var currentStreak: Int
     var bestStreak: Int
     var brightness: Double
+    var flameColorID: UUID?
     
-    init(id: UUID = UUID(), name: String, icon: String = "flame.fill", createdAt: Date = .now, isExtinguished: Bool = false, lastCheckInDate: Date? = nil, currentStreak: Int = 0, bestStreak: Int = 0, brightness: Double = 0.6) {
+    init(id: UUID = UUID(), name: String, icon: String = "flame.fill", createdAt: Date = .now, isExtinguished: Bool = false, lastCheckInDate: Date? = nil, currentStreak: Int = 0, bestStreak: Int = 0, brightness: Double = 0.6, flameColorID: UUID? = nil) {
         self.id = id
         self.name = name
         self.icon = icon
@@ -27,6 +28,7 @@ struct Habit: Identifiable, Hashable, Codable {
         self.currentStreak = currentStreak
         self.bestStreak = bestStreak
         self.brightness = brightness
+        self.flameColorID = flameColorID
     }
 }
 

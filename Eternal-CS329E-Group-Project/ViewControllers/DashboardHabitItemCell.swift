@@ -12,6 +12,7 @@ final class DashboardHabitItemCell: UICollectionViewCell {
     private let streakLabel = UILabel()
     private let miniFlameView = UIImageView()
     private let cardGradientLayer = CAGradientLayer()
+    private var rainbowFlameView: RainbowFlameView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -121,39 +122,60 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         let base = UIImage(systemName: habit.icon) ?? UIImage(systemName: "flame.fill")
         iconView.image = base?.withRenderingMode(.alwaysTemplate)
         
-        // Determine flame color based on streak milestones
-        let flameColor: UIColor
-        if habit.currentStreak >= 30 {
-            // 30+ days: Gold flame (hottest)
-            flameColor = UIColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1)
-        } else if habit.currentStreak >= 14 {
-            // 14-29 days: Bright Orange
-            flameColor = UIColor(red: 0.95, green: 0.35, blue: 0.1, alpha: 1)
-        } else if habit.currentStreak >= 7 {
-            // 7-13 days: Orange
-            flameColor = UIColor(red: 0.9, green: 0.25, blue: 0.05, alpha: 1)
-        } else {
-            // 0-6 days: Use theme primary (lets Amber show)
-            flameColor = theme.primary
+        // Get habit-specific flame color (falls back to global if not set)
+        let activeFlameColor = store.getFlameColor(for: habit.id)
+        
+        // Remove existing rainbow flame if any
+        if let existingRainbow = rainbowFlameView {
+            existingRainbow.stopAnimating()
+            existingRainbow.removeFromSuperview()
+            rainbowFlameView = nil
         }
         
-        // Apply flame color to both icon and mini flame
-        iconView.tintColor = flameColor
-        miniFlameView.tintColor = flameColor
+        // Check if rainbow flame
+        if activeFlameColor.name.lowercased().contains("rainbow") {
+            // Hide static icon and create rainbow animation
+            iconView.alpha = 0
+            
+            let rainbow = RainbowFlameView(frame: iconView.bounds)
+            rainbow.translatesAutoresizingMaskIntoConstraints = false
+            card.addSubview(rainbow)
+            
+            NSLayoutConstraint.activate([
+                rainbow.centerXAnchor.constraint(equalTo: iconView.centerXAnchor),
+                rainbow.centerYAnchor.constraint(equalTo: iconView.centerYAnchor),
+                rainbow.widthAnchor.constraint(equalToConstant: 32),
+                rainbow.heightAnchor.constraint(equalToConstant: 32)
+            ])
+            
+            rainbow.startAnimating()
+            rainbowFlameView = rainbow
+            
+            // Mini flame also rainbow (use a representative color)
+            miniFlameView.tintColor = UIColor(red: 1.0, green: 0.3, blue: 0.5, alpha: 1)
+        } else {
+            // Regular flame color
+            iconView.alpha = 1.0
+            let flameUIColor = UIColor(hex: activeFlameColor.colorHex) ?? theme.primary
+            iconView.tintColor = flameUIColor
+            miniFlameView.tintColor = flameUIColor
+        }
         
         // Animate icon based on brightness/streak
-        let alpha = CGFloat(max(0.4, min(1.0, habit.brightness)))
         let scale = CGFloat(0.9 + 0.2 * habit.brightness)
         
         UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut], animations: {
-            self.iconView.alpha = alpha
+            if self.rainbowFlameView == nil {
+                self.iconView.alpha = CGFloat(max(0.4, min(1.0, habit.brightness)))
+            }
             self.iconView.transform = CGAffineTransform(scaleX: scale, y: scale)
         })
         
         // Highlight card if streak is active
         if habit.currentStreak > 0 {
+            let borderColor = UIColor(hex: activeFlameColor.colorHex) ?? theme.primary
             card.layer.borderWidth = 2
-            card.layer.borderColor = flameColor.withAlphaComponent(0.3).cgColor
+            card.layer.borderColor = borderColor.withAlphaComponent(0.3).cgColor
             miniFlameView.alpha = 1.0
             
             // Pulse animation for active streaks
@@ -181,6 +203,15 @@ final class DashboardHabitItemCell: UICollectionViewCell {
         super.prepareForReuse()
         miniFlameView.layer.removeAllAnimations()
         card.layer.borderWidth = 0
+        
+        // Stop and remove rainbow flame
+        if let rainbow = rainbowFlameView {
+            rainbow.stopAnimating()
+            rainbow.removeFromSuperview()
+            rainbowFlameView = nil
+        }
+        
+        iconView.alpha = 1.0
     }
 }
 

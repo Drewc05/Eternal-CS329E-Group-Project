@@ -18,6 +18,7 @@ final class DashboardHeaderView: UICollectionReusableView {
     private let streakLabel = UILabel()
     private let streakTitleLabel = UILabel()
     private let checkInButton = UIButton(type: .system)
+    private let badgeLabel = UILabel()  // Badge display (SF Symbol or Emoji)
     private let gradientLayer = CAGradientLayer()
     private let cardGradientLayer = CAGradientLayer()
     
@@ -86,6 +87,11 @@ final class DashboardHeaderView: UICollectionReusableView {
         streakLabel.textAlignment = .left
         streakLabel.text = "0 🔥"
         
+        // Badge icon display (SF Symbol or Emoji)
+        badgeLabel.font = .systemFont(ofSize: 28)
+        badgeLabel.textAlignment = .center
+        badgeLabel.isHidden = true  // Hidden by default
+        
         // Check-in button - COMPACT
         checkInButton.setTitle("Check-In", for: .normal)
         checkInButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
@@ -104,8 +110,8 @@ final class DashboardHeaderView: UICollectionReusableView {
         checkInButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 16, bottom: 10, right: 16)
         checkInButton.addTarget(self, action: #selector(checkInTapped), for: .touchUpInside)
         
-        // HORIZONTAL layout - everything in one row: flame | number | button
-        let mainStack = UIStackView(arrangedSubviews: [animatedFlame, streakLabel, UIView(), checkInButton])
+        // HORIZONTAL layout - flame | number | spacer | badge | spacing | button
+        let mainStack = UIStackView(arrangedSubviews: [animatedFlame, streakLabel, UIView(), badgeLabel, checkInButton])
         mainStack.axis = .horizontal
         mainStack.alignment = .center
         mainStack.spacing = 12
@@ -170,6 +176,28 @@ final class DashboardHeaderView: UICollectionReusableView {
     
     func configure(overallStreak: Int) {
         streakLabel.text = "\(overallStreak) 🔥"
+        
+        // Display active badge if one is equipped
+        if let activeBadge = store.getActiveBadge() {
+            let icon = activeBadge.icon
+            
+            // Create attributed string with SF Symbol
+            let symbolConfig = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
+            if let symbolImage = UIImage(systemName: icon, withConfiguration: symbolConfig) {
+                let attachment = NSTextAttachment()
+                attachment.image = symbolImage.withTintColor(UIColor(hex: activeBadge.colorHex) ?? theme.primary)
+                let attributedString = NSAttributedString(attachment: attachment)
+                badgeLabel.attributedText = attributedString
+            } else {
+                // Fallback to text if symbol not found
+                badgeLabel.text = icon
+            }
+            badgeLabel.isHidden = false
+        } else {
+            badgeLabel.text = ""
+            badgeLabel.attributedText = nil
+            badgeLabel.isHidden = true
+        }
         
         // Animate streak number change
         streakLabel.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)

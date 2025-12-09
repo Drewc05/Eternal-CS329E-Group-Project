@@ -1,8 +1,6 @@
 #  README
 
-Final Release:
-
-Contributions
+Final Release Contributions:
 
 Colin
 - Improved software keyboard functionality on Login/Signup screens
@@ -12,6 +10,7 @@ Colin
     - Made it scrollable
     - Removed the legend
 - Made the flame particles on the dashboard flow vertically, and slightly increase in rate for the first couple days of a new streak
+- Made the Presentation!
 
 Drew
 - Added a delete habit option, press hold on a habit on the dashboard and an option to delete will appear
@@ -27,6 +26,17 @@ Ori
     - Wager Feature is the main focus now!
     - Streak Freeze UI enhanced and fully functional
 - Testing UI features of Wager Feature: Different Colored Flame Icons for a completed/won wager (stretch)
+- Flame Colors are able to be changed for each seperate habit if you purchase flame colors from the shop using a long press on the habit. You can set your default flame in the inventory menu as well.
+- Coin Multipliers are able to be purchased from the shop with variable time and multiplication factors.
+- Themes are purchased in the shop: Amber, Night, Forest, Sunset, and Inferno. The Default and Dark Mode come standard for first time users.
+- Badges able to be bought and equipped next to the user's streak on the home screen.
+- Double Freeze Pack (Comes with 2 Streak Freezes)
+- Mystery Box. Spend 75 coins and get anywhere between 50-500 coins.
+- Auto-Complete Pass. Completes all your habits for the day with one press.
+- Streak Recovery: Restores up to 7 missed days to your current streak.
+- Habit Slots are purchasable in shop. Users start with 5 Habit Slots and can acquire up to a total of 10 using the shop. This is to promote users to stick to their starter habits first.
+- Updated Inventory Page under Profile. Here you can see all of your items you've purchased (Flames, Themes, Items) in a nice user friendly set up. You can use your items directly through the Items section to streamline your experience.
+- Rainbow Flame that animates a rainbow of colors on the flame icon.
 
 
 Beta Release

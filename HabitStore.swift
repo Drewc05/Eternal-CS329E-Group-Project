@@ -5,8 +5,10 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import UIKit
+import Combine
 
-final class HabitStore {
+final class HabitStore: ObservableObject {
     static let shared = HabitStore()
 
     private let db = Firestore.firestore()
@@ -21,16 +23,66 @@ final class HabitStore {
         static let notificationMinute = "settings.notificationMinute"
         static let freezes = "inventory.freezes"
         static let multiplierUntil = "inventory.multiplierUntil"
+        static let multiplierStrength = "inventory.multiplierStrength"
+        static let activeFlameColorID = "inventory.activeFlameColorID"
+        static let activeBadgeID = "inventory.activeBadgeID"
     }
 
     private(set) var habits: [Habit] = []
     private(set) var entriesByDay: [Date: [HabitEntry]] = [:]
     private(set) var wallet = CurrencyWallet()
-    private(set) var settings = AppSettings()
+    @Published private(set) var settings = AppSettings()
     private(set) var wagers: [Wager] = []
 
     private(set) var streakFreezesOwned: Int = 0
     private(set) var activeMultiplierUntil: Date? = nil
+    private(set) var activeMultiplierStrength: Double = 1.0
+    private(set) var activeFlameColorID: UUID? = nil
+    private(set) var activeBadgeID: UUID? = nil
+    
+    // New inventory counts for stockpiling
+    private(set) var streakRecoveryPasses: Int = 0
+    private(set) var multiplier24hCount: Int = 0
+    private(set) var multiplier7dCount: Int = 0
+    private(set) var multiplierMegaCount: Int = 0
+    
+    // Shop items
+    private(set) var shopCatalog: [ShopItem] = ShopItem.defaultCatalog
+    private(set) var purchasedItems: [PurchasedItem] = []
+    private(set) var ownedFlameColors: [FlameColor] = []
+    private(set) var unlockedBadges: [Badge] = []
+    private(set) var maxHabitSlots: Int = 5
+    private(set) var autoCompletePasses: Int = 0
+    @Published private(set) var ownedThemes: Set<String> = []
+    
+    // Sorted and grouped shop catalog for UI consumption
+    var sortedShopCatalog: [ShopItem] {
+        // Establish group partitions while preserving UX group order
+        // Power-ups subgroups: streak freezes together; mystery box; multipliers; recovery/auto/slot
+        let freezes = shopCatalog.filter { $0.type == .streakFreeze }
+            .sorted { $0.price < $1.price }
+        let mystery = shopCatalog.filter { $0.type == .dailyDeal && $0.name.lowercased().contains("mystery") }
+            .sorted { $0.price < $1.price }
+        let multipliers = shopCatalog.filter { $0.type == .coinMultiplier }
+            .sorted { $0.price < $1.price }
+        let recoveryAutoSlot = shopCatalog.filter { $0.type == .streakRecovery || $0.type == .autoComplete || $0.type == .habitSlot }
+            .sorted { $0.price < $1.price }
+
+        // Flames group (all flameColor)
+        let flames = shopCatalog.filter { $0.type == .flameColor }
+            .sorted { $0.price < $1.price }
+
+        // Themes group (customTheme)
+        let themes = shopCatalog.filter { $0.type == .customTheme }
+            .sorted { $0.price < $1.price }
+
+        // Badges group (badge)
+        let badges = shopCatalog.filter { $0.type == .badge }
+            .sorted { $0.price < $1.price }
+
+        // Concatenate in desired UX order
+        return freezes + mystery + multipliers + recoveryAutoSlot + flames + themes + badges
+    }
     
     private var userId: String? {
         return Auth.auth().currentUser?.uid
@@ -48,6 +100,19 @@ final class HabitStore {
         if let ts = defaults.object(forKey: Keys.multiplierUntil) as? TimeInterval {
             activeMultiplierUntil = Date(timeIntervalSince1970: ts)
         }
+        activeMultiplierStrength = defaults.double(forKey: Keys.multiplierStrength)
+        if activeMultiplierStrength == 0 { activeMultiplierStrength = 1.0 }
+        if let idString = defaults.string(forKey: Keys.activeFlameColorID),
+           let id = UUID(uuidString: idString) {
+            activeFlameColorID = id
+        }
+        if let badgeIDString = defaults.string(forKey: Keys.activeBadgeID),
+           let bid = UUID(uuidString: badgeIDString) {
+            activeBadgeID = bid
+        }
+        
+        // Initialize default flame colors
+        ownedFlameColors = FlameColor.defaultColors
     }
 
     func clearUserData() {
@@ -58,6 +123,20 @@ final class HabitStore {
         wagers = []
         streakFreezesOwned = 0
         activeMultiplierUntil = nil
+        activeMultiplierStrength = 1.0
+        activeFlameColorID = nil
+        activeBadgeID = nil
+        shopCatalog = ShopItem.defaultCatalog
+        purchasedItems = []
+        ownedFlameColors = []
+        unlockedBadges = []
+        maxHabitSlots = 5
+        autoCompletePasses = 0
+        ownedThemes = []
+        streakRecoveryPasses = 0
+        multiplier24hCount = 0
+        multiplier7dCount = 0
+        multiplierMegaCount = 0
     }
 
     func loadFromFirebase(completion: (() -> Void)? = nil) {
@@ -145,7 +224,12 @@ final class HabitStore {
                     lastCheckInDate = timestamp.dateValue()
                 }
                 
-                return Habit(
+                var flameColorID: UUID? = nil
+                if let flameString = data["flameColorID"] as? String, let fid = UUID(uuidString: flameString) {
+                    flameColorID = fid
+                }
+                
+                var habit = Habit(
                     id: id,
                     name: name,
                     icon: icon,
@@ -156,6 +240,8 @@ final class HabitStore {
                     bestStreak: bestStreak,
                     brightness: brightness
                 )
+                habit.flameColorID = flameColorID
+                return habit
             }
             
             completion()
@@ -298,6 +384,94 @@ final class HabitStore {
                 if let ts = data["multiplierUntil"] as? Timestamp {
                     self.activeMultiplierUntil = ts.dateValue()
                 }
+                self.activeMultiplierStrength = data["multiplierStrength"] as? Double ?? 1.0
+                
+                self.maxHabitSlots = data["maxHabitSlots"] as? Int ?? 5
+                self.autoCompletePasses = data["autoCompletePasses"] as? Int ?? 0
+                
+                self.streakRecoveryPasses = data["streakRecoveryPasses"] as? Int ?? 0
+                self.multiplier24hCount = data["multiplier24hCount"] as? Int ?? 0
+                self.multiplier7dCount = data["multiplier7dCount"] as? Int ?? 0
+                self.multiplierMegaCount = data["multiplierMegaCount"] as? Int ?? 0
+                
+                // Load active flame color ID
+                if let activeFlameColorIDString = data["activeFlameColorID"] as? String,
+                   let id = UUID(uuidString: activeFlameColorIDString) {
+                    self.activeFlameColorID = id
+                }
+                
+                // Load active badge ID
+                if let activeBadgeIDString = data["activeBadgeID"] as? String,
+                   let bid = UUID(uuidString: activeBadgeIDString) {
+                    self.activeBadgeID = bid
+                }
+                
+                // Load flame colors
+                if let flameColorsString = data["flameColors"] as? String,
+                   let flameColorsData = flameColorsString.data(using: .utf8) {
+                    self.ownedFlameColors = (try? JSONDecoder().decode([FlameColor].self, from: flameColorsData)) ?? FlameColor.defaultColors
+                } else {
+                    self.ownedFlameColors = FlameColor.defaultColors
+                }
+                
+                // Load badges
+                if let badgesString = data["badges"] as? String,
+                   let badgesData = badgesString.data(using: .utf8) {
+                    self.unlockedBadges = (try? JSONDecoder().decode([Badge].self, from: badgesData)) ?? []
+                }
+                
+                // Load purchased items
+                if let purchasedItemsString = data["purchasedItems"] as? String,
+                   let purchasedItemsData = purchasedItemsString.data(using: .utf8) {
+                    self.purchasedItems = (try? JSONDecoder().decode([PurchasedItem].self, from: purchasedItemsData)) ?? []
+                }
+                
+                // Purge legacy badges from unlockedBadges and purchasedItems
+                let legacyNames: Set<String> = ["diamond badge", "king badge", "queen badge"]
+                self.unlockedBadges = self.unlockedBadges.filter { badge in
+                    !legacyNames.contains(where: { legacyName in
+                        badge.name.localizedCaseInsensitiveContains(legacyName)
+                    })
+                }
+                self.purchasedItems = self.purchasedItems.filter { p in
+                    if p.type == .badge,
+                       let shopItem = self.shopCatalog.first(where: { $0.id == p.shopItemID }) {
+                        return !legacyNames.contains(shopItem.name.lowercased())
+                    }
+                    return true
+                }
+                
+                // Save inventory after purge
+                // Load owned themes (stable by key)
+                if let ownedThemesString = data["ownedThemes"] as? String,
+                   let ownedThemesData = ownedThemesString.data(using: .utf8) {
+                    let decoded = (try? JSONDecoder().decode([String].self, from: ownedThemesData)) ?? []
+                    self.ownedThemes = Set(decoded.map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) })
+                    self.saveInventoryToFirebase()
+                    
+                    // Also add any themes inferred from purchasedItems to ensure persistence
+                    for purchasedItem in self.purchasedItems where purchasedItem.type == .customTheme {
+                        if let shopItem = self.shopCatalog.first(where: { $0.id == purchasedItem.shopItemID }) {
+                            let name = shopItem.name.replacingOccurrences(of: " Theme", with: "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                            self.ownedThemes.insert(name)
+                        }
+                    }
+                    
+                } else {
+                    // Fallback: infer from purchasedItems where possible
+                    var inferred: Set<String> = []
+                    for purchasedItem in self.purchasedItems where purchasedItem.type == .customTheme {
+                        if let shopItem = self.shopCatalog.first(where: { $0.id == purchasedItem.shopItemID }) {
+                            let name = shopItem.name.replacingOccurrences(of: " Theme", with: "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                            inferred.insert(name)
+                        }
+                    }
+                    self.ownedThemes = inferred
+                    self.saveInventoryToFirebase()
+                }
+            } else {
+                // No data exists yet, use defaults
+                self.ownedFlameColors = FlameColor.defaultColors
             }
             
             completion()
@@ -305,6 +479,7 @@ final class HabitStore {
     }
 
     func addHabit(name: String, icon: String) {
+        guard canAddHabit() else { return }
         let habit = Habit(name: name, icon: icon)
         habits.append(habit)
         saveHabitToFirebase(habit)
@@ -322,6 +497,7 @@ final class HabitStore {
             "brightness": habit.brightness,
             "lastCheckInDate": habit.lastCheckInDate != nil ? Timestamp(date: habit.lastCheckInDate!) : NSNull(),
             "isExtinguished": habit.isExtinguished,
+            "flameColorID": habit.flameColorID != nil ? habit.flameColorID!.uuidString : NSNull(),
             "timestamp": FieldValue.serverTimestamp()
         ]
         
@@ -446,7 +622,9 @@ final class HabitStore {
 
     private func rewardForCheckIn(streak: Int) -> Int {
         var base = 10 + min(10, streak)
-        if isMultiplierActive() { base = Int(Double(base) * 1.5) }
+        if isMultiplierActive() { 
+            base = Int(Double(base) * activeMultiplierStrength)
+        }
         return base
     }
 
@@ -469,8 +647,9 @@ final class HabitStore {
         }
     }
 
-    func activateMultiplier(hours: Int = 24) {
+    func activateMultiplier(hours: Int = 24, strength: Double = 1.5) {
         activeMultiplierUntil = Date().addingTimeInterval(TimeInterval(hours * 3600))
+        activeMultiplierStrength = strength
         saveInventoryToFirebase()
     }
 
@@ -480,7 +659,21 @@ final class HabitStore {
 
     func setThemeKey(_ key: String) {
         settings.themeKey = key
+        // Update purchasedItems active flags for themes
+        for index in purchasedItems.indices {
+            if purchasedItems[index].type == .customTheme {
+                if let shopItem = shopCatalog.first(where: { $0.id == purchasedItems[index].shopItemID }) {
+                    let themeName = shopItem.name.replacingOccurrences(of: " Theme", with: "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                    purchasedItems[index].isActive = (themeName == key.lowercased())
+                }
+            }
+        }
         saveSettingsToFirebase()
+        saveInventoryToFirebase()
+        
+        // Notify all view controllers that theme changed
+        NotificationCenter.default.post(name: NSNotification.Name("ThemeChanged"), object: nil)
+        objectWillChange.send()
     }
 
     func setNotificationsEnabled(_ enabled: Bool) {
@@ -544,15 +737,378 @@ final class HabitStore {
     private func saveInventoryToFirebase() {
         guard let uid = userId else { return }
         
+        let flameColorsData = (try? JSONEncoder().encode(ownedFlameColors)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        let badgesData = (try? JSONEncoder().encode(unlockedBadges)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        let purchasedItemsData = (try? JSONEncoder().encode(purchasedItems)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        let ownedThemesData = (try? JSONEncoder().encode(Array(ownedThemes))).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        
         let inventoryData: [String: Any] = [
             "freezes": streakFreezesOwned,
             "multiplierUntil": activeMultiplierUntil != nil ? Timestamp(date: activeMultiplierUntil!) : NSNull(),
+            "multiplierStrength": activeMultiplierStrength,
+            "maxHabitSlots": maxHabitSlots,
+            "autoCompletePasses": autoCompletePasses,
+            "streakRecoveryPasses": streakRecoveryPasses,
+            "multiplier24hCount": multiplier24hCount,
+            "multiplier7dCount": multiplier7dCount,
+            "multiplierMegaCount": multiplierMegaCount,
+            "activeFlameColorID": activeFlameColorID?.uuidString ?? "",
+            "activeBadgeID": activeBadgeID?.uuidString ?? "",
+            "flameColors": flameColorsData,
+            "badges": badgesData,
+            "purchasedItems": purchasedItemsData,
+            "ownedThemes": ownedThemesData,
             "timestamp": FieldValue.serverTimestamp()
         ]
         
         db.collection("users").document(uid).collection("inventory").document("data").setData(inventoryData, merge: true)
         defaults.set(streakFreezesOwned, forKey: Keys.freezes)
         defaults.set(activeMultiplierUntil?.timeIntervalSince1970, forKey: Keys.multiplierUntil)
+        defaults.set(activeMultiplierStrength, forKey: Keys.multiplierStrength)
+        defaults.set(activeFlameColorID?.uuidString, forKey: Keys.activeFlameColorID)
+        defaults.set(activeBadgeID?.uuidString, forKey: Keys.activeBadgeID)
+    }
+    
+    
+    // MARK: - Shop Methods
+    
+    func purchaseShopItem(_ item: ShopItem, completion: @escaping (Bool, String) -> Void) {
+        switch item.type {
+        case .streakFreeze:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            // Check for special "Double Freeze Pack"
+            let count = item.name.contains("Double") ? 2 : 1
+            addStreakFreeze(count: count)
+            let message = count > 1 ? "\(count) Streak Freezes purchased!" : "Streak Freeze purchased!"
+            completion(true, message)
+            
+        case .coinMultiplier:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            // Stockpile multiplier counts instead of immediate activation
+            if item.name.contains("Mega") {
+                multiplierMegaCount += 1
+            } else if item.name.contains("7-Day") || item.name.contains("7 Day") {
+                multiplier7dCount += 1
+            } else if item.name.contains("24h") {
+                multiplier24hCount += 1
+            } else {
+                // Default to 24h 1.5x
+                multiplier24hCount += 1
+            }
+            saveInventoryToFirebase()
+            completion(true, "Multiplier added to inventory! Use it from Inventory.")
+            
+        case .streakRecovery:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            // Stockpile streak recovery passes instead of immediate use
+            streakRecoveryPasses += 1
+            saveInventoryToFirebase()
+            completion(true, "Streak Recovery added to inventory! Use it from Inventory.")
+            
+        case .autoComplete:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            autoCompletePasses += 1
+            saveInventoryToFirebase()
+            completion(true, "Auto-complete pass added!")
+            
+        case .habitSlot:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            if maxHabitSlots >= 10 {
+                completion(false, "Maximum habit slots reached!")
+                return
+            }
+            maxHabitSlots += 1
+            saveInventoryToFirebase()
+            completion(true, "Extra habit slot unlocked!")
+            
+        case .flameColor:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            // Create flame color with proper configuration
+            var colorHex = item.iconColor
+            var gradientColors = [item.iconColor, item.iconColor]
+            
+            // Special handling for Rainbow flame
+            if item.name.lowercased().contains("rainbow") {
+                colorHex = "#FF0000" // Start with red
+                gradientColors = ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"]
+            }
+            
+            let flameColor = FlameColor(
+                name: item.name,
+                colorHex: colorHex,
+                gradientColors: gradientColors,
+                price: item.price,
+                isPurchased: true
+            )
+            
+            // Check if already owned (shouldn't happen but safety check)
+            if !ownedFlameColors.contains(where: { $0.name == flameColor.name }) {
+                ownedFlameColors.append(flameColor)
+            }
+            
+            saveInventoryToFirebase()
+            completion(true, "\(item.name) unlocked!")
+            
+        case .customTheme:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            // Extract theme name from item name (remove " Theme" suffix)
+            let themeName = item.name.replacingOccurrences(of: " Theme", with: "").lowercased()
+            ownedThemes.insert(themeName)
+            self.saveInventoryToFirebase()
+            
+            // Create purchased item record
+            let purchasedItem = PurchasedItem(
+                shopItemID: item.id,
+                type: .customTheme,
+                isActive: false
+            )
+            
+            // Check if already purchased
+            if !purchasedItems.contains(where: { $0.shopItemID == item.id }) {
+                purchasedItems.append(purchasedItem)
+            }
+            
+            saveInventoryToFirebase()
+            completion(true, "\(item.name) unlocked! Visit Inventory to apply it.")
+            
+        case .badge:
+            // Prevent purchase of legacy badges
+            let legacyNames: Set<String> = ["diamond badge", "king badge", "queen badge"]
+            if legacyNames.contains(item.name.lowercased()) {
+                completion(false, "This badge is no longer available.")
+                return
+            }
+            
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            
+            let badge = Badge(
+                name: item.name,
+                description: item.description,
+                icon: item.icon,
+                colorHex: item.iconColor,
+                requirement: 0,
+                isUnlocked: true,
+                unlockedDate: Date()
+            )
+            
+            // Check if already unlocked
+            if !unlockedBadges.contains(where: { $0.name == badge.name }) {
+                unlockedBadges.append(badge)
+            }
+            
+            saveInventoryToFirebase()
+            completion(true, "Badge earned!")
+            
+        case .dailyDeal:
+            guard spendCoins(item.price) else {
+                completion(false, "Not enough coins!")
+                return
+            }
+            // Mystery box - random coin reward
+            let reward = Int.random(in: 50...500)
+            addCoins(reward)
+            completion(true, "Mystery box opened! You got \(reward) coins!")
+        }
+        
+        NotificationCenter.default.post(name: NSNotification.Name("ShopItemPurchased"), object: nil)
+    }
+    
+    func canAddHabit() -> Bool {
+        return habits.count < maxHabitSlots
+    }
+    
+    // MARK: - Flame Color Management
+    
+    func getActiveFlameColor() -> FlameColor {
+        if let activeID = activeFlameColorID,
+           let color = ownedFlameColors.first(where: { $0.id == activeID && $0.isPurchased }) {
+            return color
+        }
+        // Default to first owned color (Classic Fire)
+        if let defaultColor = ownedFlameColors.first(where: { $0.isPurchased }) {
+            return defaultColor
+        }
+        // Fallback to classic fire
+        return FlameColor.defaultColors[0]
+    }
+    
+    func setActiveFlameColor(_ colorID: UUID) {
+        // Verify the color is owned
+        guard ownedFlameColors.contains(where: { $0.id == colorID && $0.isPurchased }) else {
+            print("Cannot equip flame color that isn't owned")
+            return
+        }
+        
+        activeFlameColorID = colorID
+        defaults.set(colorID.uuidString, forKey: Keys.activeFlameColorID)
+        saveInventoryToFirebase()
+        NotificationCenter.default.post(name: NSNotification.Name("FlameColorChanged"), object: nil)
+    }
+    
+    func getOwnedFlameColors() -> [FlameColor] {
+        return ownedFlameColors.filter { $0.isPurchased }
+    }
+    
+    func isFlameColorOwned(_ colorName: String) -> Bool {
+        return ownedFlameColors.contains(where: { $0.name == colorName && $0.isPurchased })
+    }
+    
+    // Get flame color for a specific habit (falls back to global if not set)
+    func getFlameColor(for habitID: UUID) -> FlameColor {
+        guard let habit = habits.first(where: { $0.id == habitID }),
+              let colorID = habit.flameColorID,
+              let color = ownedFlameColors.first(where: { $0.id == colorID && $0.isPurchased }) else {
+            return getActiveFlameColor() // Fall back to global
+        }
+        return color
+    }
+    
+    // Set flame color for a specific habit
+    func setFlameColor(_ colorID: UUID, for habitID: UUID) {
+        guard let idx = habits.firstIndex(where: { $0.id == habitID }) else { return }
+        guard ownedFlameColors.contains(where: { $0.id == colorID && $0.isPurchased }) else { return }
+        
+        habits[idx].flameColorID = colorID
+        saveHabitToFirebase(habits[idx])
+        NotificationCenter.default.post(name: NSNotification.Name("HabitFlameColorChanged"), object: habitID)
+    }
+    
+    // MARK: - Badge Management
+    
+    func getActiveBadge() -> Badge? {
+        guard let id = activeBadgeID else { return nil }
+        return unlockedBadges.first(where: { $0.id == id })
+    }
+
+    func setActiveBadge(_ badgeID: UUID) {
+        guard unlockedBadges.contains(where: { $0.id == badgeID }) else { return }
+        activeBadgeID = badgeID
+        saveInventoryToFirebase()
+        NotificationCenter.default.post(name: NSNotification.Name("BadgeChanged"), object: nil)
+    }
+    
+    // MARK: - Theme Management
+    
+    func isThemeUnlocked(_ themeName: String) -> Bool {
+        let defaultThemes = ["default", "dark"]  // Only these two are free
+        let normalized = themeName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if defaultThemes.contains(normalized) { return true }
+        if ownedThemes.contains(normalized) { return true }
+        // Backward compatibility: check purchasedItems by matching shop item names
+        for purchasedItem in purchasedItems where purchasedItem.type == .customTheme {
+            if let shopItem = shopCatalog.first(where: { $0.id == purchasedItem.shopItemID }) {
+                let shopThemeName = shopItem.name.replacingOccurrences(of: " Theme", with: "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                if shopThemeName == normalized { return true }
+            }
+        }
+        return false
+    }
+    
+    func getUnlockedThemes() -> [String] {
+        var themes: Set<String> = ["default", "amber", "dark"]
+        themes.formUnion(ownedThemes)
+        // Backward compatibility: add any themes discoverable via purchasedItems
+        for purchasedItem in purchasedItems where purchasedItem.type == .customTheme {
+            if let shopItem = shopCatalog.first(where: { $0.id == purchasedItem.shopItemID }) {
+                let themeName = shopItem.name.replacingOccurrences(of: " Theme", with: "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                themes.insert(themeName)
+            }
+        }
+        return Array(themes)
+    }
+    
+    func useAutoCompletePass(on date: Date = Date()) -> Bool {
+        guard autoCompletePasses > 0 else { return false }
+        
+        let day = date.startOfDay
+        let activeHabits = habits.filter { !$0.isExtinguished }
+        
+        for habit in activeHabits {
+            checkIn(habitID: habit.id, didComplete: true, on: day)
+        }
+        
+        autoCompletePasses -= 1
+        saveInventoryToFirebase()
+        
+        NotificationCenter.default.post(
+            name: NSNotification.Name("AutoCompleteUsed"),
+            object: nil
+        )
+        
+        return true
+    }
+    
+    // MARK: - New Use Methods for Stockpiled Items
+    
+    func useStreakRecovery(on habit: Habit) -> Bool {
+        guard streakRecoveryPasses > 0 else { return false }
+        // Only allow if not completed today
+        let today = Date().startOfDay
+        let entries = entriesByDay[today] ?? []
+        let didCompleteToday = entries.contains(where: { $0.habitID == habit.id && $0.didComplete })
+        guard !didCompleteToday else { return false }
+        guard let idx = habits.firstIndex(where: { $0.id == habit.id }) else { return false }
+        let recoveredStreak = min(habits[idx].bestStreak, habits[idx].currentStreak + 7)
+        habits[idx].currentStreak = recoveredStreak
+        saveHabitToFirebase(habits[idx])
+        streakRecoveryPasses -= 1
+        saveInventoryToFirebase()
+        return true
+    }
+
+    func useMultiplier24h() -> Bool {
+        guard multiplier24hCount > 0 else { return false }
+        activateMultiplier(hours: 24, strength: 1.5)
+        multiplier24hCount -= 1
+        saveInventoryToFirebase()
+        return true
+    }
+
+    func useMultiplier7d() -> Bool {
+        guard multiplier7dCount > 0 else { return false }
+        activateMultiplier(hours: 24 * 7, strength: 1.5)
+        multiplier7dCount -= 1
+        saveInventoryToFirebase()
+        return true
+    }
+
+    func useMultiplierMega() -> Bool {
+        guard multiplierMegaCount > 0 else { return false }
+        activateMultiplier(hours: 24, strength: 2.0)
+        multiplierMegaCount -= 1
+        saveInventoryToFirebase()
+        return true
+    }
+    
+    // Helper to get habits not completed today, for UI or inventory use
+    func habitsNotCompletedToday() -> [Habit] {
+        let today = Date().startOfDay
+        let completedIDs = Set(entriesByDay[today]?.filter { $0.didComplete }.map { $0.habitID } ?? [])
+        return habits.filter { !$0.isExtinguished && !completedIDs.contains($0.id) }
     }
     
     func addWager(_ wager: Wager) {
@@ -832,8 +1388,12 @@ final class HabitStore {
                 self.defaults.removeObject(forKey: Keys.notificationMinute)
                 self.defaults.removeObject(forKey: Keys.freezes)
                 self.defaults.removeObject(forKey: Keys.multiplierUntil)
+                self.defaults.removeObject(forKey: Keys.multiplierStrength)
+                self.defaults.removeObject(forKey: Keys.activeFlameColorID)
+                self.defaults.removeObject(forKey: Keys.activeBadgeID)
                 completion(true)
             }
         }
     }
 }
+

@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		55F153B42EC478830015D5A9 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 55F153B32EC478830015D5A9 /* README.md */; };
+		BBAFAFD42EE4FAF400CDC358 /* ShopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFAFD32EE4FAF400CDC358 /* ShopModels.swift */; };
+		BBAFAFD62EE4FF1500CDC358 /* RainbowFlameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFAFD52EE4FF1500CDC358 /* RainbowFlameView.swift */; };
+		BBAFAFD82EE4FF5100CDC358 /* InventoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFAFD72EE4FF5100CDC358 /* InventoryViewController.swift */; };
+		BBAFAFF02EE51A5900CDC358 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFAFEF2EE51A5900CDC358 /* ThemeManager.swift */; };
+		BBAFAFF42EE51A6C00CDC358 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAFAFF32EE51A6C00CDC358 /* ContentView.swift */; };
 		BBB2A43B2EC571FA002580EB /* Models 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A43A2EC571FA002580EB /* Models 2.swift */; };
 		BBB2A4412EC5723A002580EB /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A4402EC5723A002580EB /* NotificationManager.swift */; };
 		BBB2A4432EC57248002580EB /* AnimationUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB2A4422EC57248002580EB /* AnimationUtility.swift */; };
@@ -32,6 +37,11 @@
 		55D74DD92EC43BBE00D1CEC9 /* Eternal-CS329E-Group-Project.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Eternal-CS329E-Group-Project.xcodeproj"; sourceTree = "<group>"; };
 		55F153B32EC478830015D5A9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		72AB32B42EA6A62600E84ED4 /* Eternal-CS329E-Group-Project.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Eternal-CS329E-Group-Project.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBAFAFD32EE4FAF400CDC358 /* ShopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopModels.swift; sourceTree = "<group>"; };
+		BBAFAFD52EE4FF1500CDC358 /* RainbowFlameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RainbowFlameView.swift; sourceTree = "<group>"; };
+		BBAFAFD72EE4FF5100CDC358 /* InventoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryViewController.swift; sourceTree = "<group>"; };
+		BBAFAFEF2EE51A5900CDC358 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		BBAFAFF32EE51A6C00CDC358 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BBB2A43A2EC571FA002580EB /* Models 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models 2.swift"; sourceTree = "<group>"; };
 		BBB2A4402EC5723A002580EB /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		BBB2A4422EC57248002580EB /* AnimationUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationUtility.swift; sourceTree = "<group>"; };
@@ -114,6 +124,11 @@
 				BBB2A4422EC57248002580EB /* AnimationUtility.swift */,
 				BBB2A4442EC575AF002580EB /* AnimatedFlameView.swift */,
 				BBB2A4482EC576AB002580EB /* AnimationUtilities.swift */,
+				BBAFAFD32EE4FAF400CDC358 /* ShopModels.swift */,
+				BBAFAFD52EE4FF1500CDC358 /* RainbowFlameView.swift */,
+				BBAFAFD72EE4FF5100CDC358 /* InventoryViewController.swift */,
+				BBAFAFEF2EE51A5900CDC358 /* ThemeManager.swift */,
+				BBAFAFF32EE51A6C00CDC358 /* ContentView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -240,13 +255,18 @@
 				BBB2A4412EC5723A002580EB /* NotificationManager.swift in Sources */,
 				BBD09B5D2EA800C900E355CF /* HabitStore.swift in Sources */,
 				BBD09B612EA800D800E355CF /* CheckInViewController.swift in Sources */,
+				BBAFAFD82EE4FF5100CDC358 /* InventoryViewController.swift in Sources */,
 				BBD09B6F2EA80A5A00E355CF /* ShopItemCell.swift in Sources */,
+				BBAFAFD62EE4FF1500CDC358 /* RainbowFlameView.swift in Sources */,
 				BBB2A4492EC576AB002580EB /* AnimationUtilities.swift in Sources */,
 				BBD09B6D2EA8072500E355CF /* ShopViewController.swift in Sources */,
 				BBD09B5F2EA800CF00E355CF /* NewHabitViewController.swift in Sources */,
 				BBB2A43B2EC571FA002580EB /* Models 2.swift in Sources */,
 				BBD09B6B2EA8050B00E355CF /* Theme.swift in Sources */,
+				BBAFAFF42EE51A6C00CDC358 /* ContentView.swift in Sources */,
+				BBAFAFD42EE4FAF400CDC358 /* ShopModels.swift in Sources */,
 				BBB2A4452EC575AF002580EB /* AnimatedFlameView.swift in Sources */,
+				BBAFAFF02EE51A5900CDC358 /* ThemeManager.swift in Sources */,
 				BBD09B632EA8022D00E355CF /* DashboardHabitCell.swift in Sources */,
 				BBD09B712EA80A6500E355CF /* ShopHeaderView.swift in Sources */,
 			);

@@ -1,6 +1,7 @@
 // Eternal-CS329E-Group-Project
 // Group 15
 // Created / Edits done by Ori Parks (lwp369)
+
 //  Reference guide for consistent animations throughout the app
 
 import UIKit

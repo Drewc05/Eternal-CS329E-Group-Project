@@ -14,11 +14,37 @@ class TabController: UITabBarController {
         self.SetUpTabs()
 
         applyTheme(theme)
+        
+        // Listen for theme changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleThemeChange),
+            name: NSNotification.Name("ThemeChanged"),
+            object: nil
+        )
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         applyTheme(theme)
+    }
+    
+    @objc private func handleThemeChange() {
+        applyTheme(theme)
+        
+        // Force all view controllers to update
+        viewControllers?.forEach { navController in
+            if let nav = navController as? UINavigationController {
+                nav.viewControllers.forEach { vc in
+                    vc.view.setNeedsLayout()
+                    vc.view.layoutIfNeeded()
+                }
+            }
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     func applyTheme(_ theme: Theme) {

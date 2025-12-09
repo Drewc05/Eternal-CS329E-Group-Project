@@ -37,10 +37,30 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
         //navigationController?.setNavigationBarHidden(true, animated: false)
         setupUI()
         
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleThemeChanged),
+            name: NSNotification.Name("ThemeChanged"),
+            object: nil
+        )
+        
         if let firstHabit = store.habits.first {
             selectedHabit = firstHabit
             updateHabitPickerButton()
         }
+    }
+    
+    @objc private func handleThemeChanged() {
+        // Recompute theme
+        let t = theme
+        view.backgroundColor = t.background
+        view.tintColor = t.primary
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: t)
+        // Update calendar and header colors
+        calendarView.backgroundColor = t.card
+        calendarView.tintColor = t.primary
+        // Reload decorations to reflect new primary color
+        calendarView.reloadDecorations(forDateComponents: [], animated: true)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -64,6 +84,10 @@ class CalendarPage: UIViewController, UICalendarViewDelegate, UICalendarSelectio
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: false)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - UI Setup

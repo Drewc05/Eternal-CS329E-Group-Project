@@ -2,10 +2,6 @@
 // Group 15
 // Created / Edits done by Ori Parks (lwp369)
 
-// Eternal-CS329E-Group-Project
-// Group 15
-// Created / Edits done by Ori Parks (lwp369)
-
 import UIKit
 
 final class CheckInViewController: UIViewController, UITextViewDelegate {
@@ -116,7 +112,7 @@ final class CheckInViewController: UIViewController, UITextViewDelegate {
     @objc private func yesTapped() {
         let note = (notesField.textColor == .secondaryLabel || notesField.text == "Notes (optional)" || notesField.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? nil : notesField.text.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        print("💾 Saving YES check-in with note: '\(note ?? "nil")'")
+        print("Saving YES check-in with note: '\(note ?? "nil")'")
         
         if let idx = store.habits.firstIndex(where: { $0.id == habit.id }) {
             let current = store.habits[idx]
@@ -140,7 +136,7 @@ final class CheckInViewController: UIViewController, UITextViewDelegate {
     @objc private func noTapped() {
         let note = (notesField.textColor == .secondaryLabel || notesField.text == "Notes (optional)" || notesField.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? nil : notesField.text.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        print("💾 Saving NO check-in with note: '\(note ?? "nil")'")
+        print("Saving NO check-in with note: '\(note ?? "nil")'")
         
         store.checkIn(habitID: habit.id, didComplete: false, note: note)
         navigationController?.popViewController(animated: true)

@@ -17,7 +17,7 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
     private var theme: Theme { ThemeManager.current(from: store.settings.themeKey) }
 
     private enum Row: Int, CaseIterable {
-        case theme
+        case inventory
         case notifications
         case signOut
         case changePassword
@@ -50,6 +50,14 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(handleThemeChanged), name: NSNotification.Name("ThemeChanged"), object: nil)
+    }
+    
+    @objc private func handleThemeChanged() {
+        view.backgroundColor = theme.background
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
+        tableView.reloadData()
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -60,9 +68,9 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         var config = UIListContentConfiguration.valueCell()
         switch Row(rawValue: indexPath.row)! {
-        case .theme:
-            config.text = "Theme"
-            config.secondaryText = store.settings.themeKey.capitalized
+        case .inventory:
+            config.text = "Inventory"
+            config.secondaryText = "Flames, Themes & Items"
             config.textProperties.color = theme.text
             config.secondaryTextProperties.color = theme.secondaryText
             cell.accessoryType = .disclosureIndicator
@@ -108,31 +116,9 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         switch Row(rawValue: indexPath.row)! {
-        case .theme:
-            let alert = UIAlertController(title: "Theme", message: "Choose a theme", preferredStyle: .actionSheet)
-            alert.addAction(UIAlertAction(title: "Default", style: .default, handler: { _ in
-                self.store.setThemeKey("default")
-                self.view.backgroundColor = self.theme.background
-                self.tableView.reloadData()
-                ThemeManager.styleNavBar(self.navigationController?.navigationBar, theme: self.theme)
-                self.navigationController?.navigationBar.tintColor = self.theme.primary
-            }))
-            alert.addAction(UIAlertAction(title: "Dark", style: .default, handler: { _ in
-                self.store.setThemeKey("dark")
-                self.view.backgroundColor = self.theme.background
-                self.tableView.reloadData()
-                ThemeManager.styleNavBar(self.navigationController?.navigationBar, theme: self.theme)
-                self.navigationController?.navigationBar.tintColor = self.theme.primary
-            }))
-            alert.addAction(UIAlertAction(title: "Amber", style: .default, handler: { _ in
-                self.store.setThemeKey("amber")
-                self.view.backgroundColor = self.theme.background
-                self.tableView.reloadData()
-                ThemeManager.styleNavBar(self.navigationController?.navigationBar, theme: self.theme)
-                self.navigationController?.navigationBar.tintColor = self.theme.primary
-            }))
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            present(alert, animated: true)
+        case .inventory:
+            let inventoryVC = InventoryViewController()
+            navigationController?.pushViewController(inventoryVC, animated: true)
         case .notifications:
             showNotificationTimePicker()
         case .signOut:
@@ -325,4 +311,3 @@ class Profile: UIViewController, UITableViewDataSource, UITableViewDelegate {
         }
     }
 }
-

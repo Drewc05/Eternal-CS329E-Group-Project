@@ -7,10 +7,12 @@ import UIKit
 final class DashboardHabitCell: UITableViewCell {
     static let reuseID = "DashboardHabitCell"
 
+    private let store = HabitStore.shared
     private let card = UIView()
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let streakLabel = UILabel()
+    private var flameView: UIView?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -72,6 +74,10 @@ final class DashboardHabitCell: UITableViewCell {
         let base = UIImage(systemName: habit.icon) ?? UIImage(systemName: "flame.fill")
         iconView.image = base?.withRenderingMode(.alwaysTemplate)
         
+        // Get habit-specific flame color (falls back to global if not set)
+        let flameColor = store.getFlameColor(for: habit.id)
+        applyFlameColor(flameColor)
+        
         // Animate alpha and scale changes
         UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut], animations: {
             self.iconView.alpha = CGFloat(max(0.2, min(1.0, habit.brightness)))
@@ -87,6 +93,44 @@ final class DashboardHabitCell: UITableViewCell {
         }
     }
     
+    private func applyFlameColor(_ flameColor: FlameColor) {
+        // Remove existing rainbow flame if any
+        if let existingFlame = flameView {
+            if let rainbowFlame = existingFlame as? RainbowFlameView {
+                rainbowFlame.stopAnimating()
+            }
+            existingFlame.removeFromSuperview()
+            flameView = nil
+        }
+        
+        // Check if it's rainbow flame
+        if flameColor.name.lowercased().contains("rainbow") {
+            // Hide the static icon
+            iconView.alpha = 0
+            
+            // Create rainbow flame view overlaying the icon
+            let rainbowFlame = RainbowFlameView(frame: iconView.bounds)
+            rainbowFlame.translatesAutoresizingMaskIntoConstraints = false
+            
+            // Add to card, not iconView
+            card.addSubview(rainbowFlame)
+            
+            NSLayoutConstraint.activate([
+                rainbowFlame.leadingAnchor.constraint(equalTo: iconView.leadingAnchor),
+                rainbowFlame.trailingAnchor.constraint(equalTo: iconView.trailingAnchor),
+                rainbowFlame.topAnchor.constraint(equalTo: iconView.topAnchor),
+                rainbowFlame.bottomAnchor.constraint(equalTo: iconView.bottomAnchor)
+            ])
+            
+            rainbowFlame.startAnimating()
+            flameView = rainbowFlame
+        } else {
+            // Regular color - show the icon
+            iconView.alpha = 1.0
+            iconView.tintColor = UIColor(hex: flameColor.colorHex) ?? UIColor(red: 0.843, green: 0.137, blue: 0.008, alpha: 1)
+        }
+    }
+    
     private func addPulseAnimation() {
         let pulse = CABasicAnimation(keyPath: "transform.scale")
         pulse.duration = 1.5
@@ -96,5 +140,15 @@ final class DashboardHabitCell: UITableViewCell {
         pulse.repeatCount = .infinity
         pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         card.layer.add(pulse, forKey: "pulse")
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        if let rainbowFlame = flameView as? RainbowFlameView {
+            rainbowFlame.stopAnimating()
+        }
+        flameView?.removeFromSuperview()
+        flameView = nil
+        card.layer.removeAnimation(forKey: "pulse")
     }
 }

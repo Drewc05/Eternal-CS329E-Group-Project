@@ -55,6 +55,11 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         NotificationCenter.default.addObserver(self, selector: #selector(habitDataLoaded), name: NSNotification.Name("HabitDataLoaded"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(wagerWon(_:)), name: NSNotification.Name("WagerWon"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(wagerLost(_:)), name: NSNotification.Name("WagerLost"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(flameColorChanged), name: NSNotification.Name("FlameColorChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(themeChanged), name: NSNotification.Name("ThemeChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(habitFlameColorChanged(_:)), name: NSNotification.Name("HabitFlameColorChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(badgeChanged), name: NSNotification.Name("BadgeChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(streakFreezeAutoApplied(_:)), name: NSNotification.Name("StreakFreezeAutoApplied"), object: nil)
     }
     
     deinit {
@@ -62,6 +67,24 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     }
     
     @objc private func habitDataLoaded() {
+        collectionView.reloadData()
+    }
+    
+    @objc private func flameColorChanged() {
+        collectionView.reloadData()
+    }
+    
+    @objc private func habitFlameColorChanged(_ notification: Notification) {
+        collectionView.reloadData()
+    }
+    
+    @objc private func themeChanged() {
+        view.backgroundColor = theme.background
+        ThemeManager.styleNavBar(navigationController?.navigationBar, theme: theme)
+        collectionView.reloadData()
+    }
+    
+    @objc private func badgeChanged() {
         collectionView.reloadData()
     }
     
@@ -115,6 +138,11 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        // Safety check - ensure index is valid
+        guard indexPath.item < store.habits.count else {
+            return collectionView.dequeueReusableCell(withReuseIdentifier: DashboardHabitItemCell.reuseID, for: indexPath)
+        }
+        
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DashboardHabitItemCell.reuseID, for: indexPath) as! DashboardHabitItemCell
         cell.configure(with: store.habits[indexPath.item])
         
@@ -130,6 +158,12 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        // Safety check - ensure index is valid
+        guard indexPath.item < store.habits.count else {
+            collectionView.reloadData()
+            return
+        }
+        
         let habit = store.habits[indexPath.item]
         
         if let cell = collectionView.cellForItem(at: indexPath) {
@@ -150,9 +184,28 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
     }
     
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        // Safety check - ensure index is valid
+        guard indexPath.item < store.habits.count else { return nil }
+        
         let habit = store.habits[indexPath.item]
         
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ -> UIMenu? in
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ -> UIMenu? in
+            guard let self = self else { return nil }
+            
+            // Double-check index is still valid when menu is created
+            guard indexPath.item < self.store.habits.count else { return nil }
+            
+            let customizeAction = UIAction(
+                title: "Customize Flame Color",
+                image: UIImage(systemName: "paintbrush"),
+                attributes: []
+            ) { _ in
+                guard indexPath.item < self.store.habits.count else { return }
+                let habit = self.store.habits[indexPath.item]
+                let vc = HabitCustomizationViewController(habit: habit)
+                self.navigationController?.pushViewController(vc, animated: true)
+            }
+            
             let deleteAction = UIAction(
                 title: "Delete Habit",
                 image: UIImage(systemName: "trash"),
@@ -161,7 +214,7 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
                 self?.confirmDeleteHabit(at: indexPath)
             }
             
-            return UIMenu(title: habit.name, children: [deleteAction])
+            return UIMenu(title: habit.name, children: [customizeAction, deleteAction])
         }
     }
     
@@ -258,6 +311,21 @@ class Dashboard: UIViewController, UICollectionViewDataSource, UICollectionViewD
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             self?.collectionView.reloadData()
         })
+        present(alert, animated: true)
+    }
+    
+    @objc private func streakFreezeAutoApplied(_ notification: Notification) {
+        guard let remaining = notification.userInfo?["remainingFreezes"] as? Int else { return }
+        
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        
+        let alert = UIAlertController(
+            title: "❄️ Streak Freeze Applied",
+            message: "You missed a day, but your streak was protected!\n\nRemaining freezes: \(remaining)",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Thanks!", style: .default))
         present(alert, animated: true)
     }
 }
